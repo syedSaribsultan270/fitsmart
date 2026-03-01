@@ -1,0 +1,87 @@
+name: fitsmart_app
+description: FitSmart AI — Your AI-Powered Fitness & Nutrition Companion
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.10.4 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State Management
+  flutter_riverpod: ^2.6.1
+
+  # Navigation
+  go_router: ^14.6.2
+
+  # Local Database
+  drift: ^2.22.1
+  drift_flutter: ^0.2.4
+  sqlite3_flutter_libs: ^0.5.26
+
+  # Firebase
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.3.0
+  cloud_firestore: ^5.4.0
+  firebase_analytics: ^11.3.0
+  firebase_crashlytics: ^4.1.0
+
+  # AI / Networking
+  google_generative_ai: ^0.4.6
+  google_sign_in: ^6.2.2
+  connectivity_plus: ^6.1.1
+
+  # Image Handling
+  image_picker: ^1.1.2
+  flutter_image_compress: ^2.3.0
+
+  # Animations
+  flutter_animate: ^4.5.0
+
+  # Charts
+  fl_chart: ^0.69.0
+
+  # Utilities
+  crypto: ^3.0.7
+  intl: ^0.19.0
+  shared_preferences: ^2.3.4
+
+  # UI
+  shimmer: ^3.0.0
+
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  drift_dev: ^2.22.1
+  build_runner: ^2.4.13
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/animations/
+    - assets/images/
+    - assets/data/
+
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Inter-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Inter-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Inter-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Inter-ExtraBold.ttf
+          weight: 800
+    - family: JetBrainsMono
+      fonts:
+        - asset: assets/fonts/JetBrainsMono-Medium.ttf
+          weight: 500

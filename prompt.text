@@ -1,0 +1,193 @@
+## GROUND RULES (read before doing anything)
+- Do NOT create new services, providers, or packages unless explicitly told to.
+- Use only what already exists in `lib/services/`, `lib/providers/`, and `lib/data/database/`.
+- Prefer `ref.watch` over `ref.read` in widget builds. Use `ref.read` only inside callbacks.
+- Every async operation must have a loading state and an error state in the UI.
+- Do not rename or move files. Only modify file contents.
+- After each section, list every file you modified.
+
+---
+
+## SECTION 1 — AUTH SCREENS
+**Files to read first:** `lib/features/auth/`, `lib/services/auth_service.dart`, `lib/router.dart`
+
+### login_screen.dart
+- [ ] Email + password fields must be validated (non-empty, valid email format) before submission.
+- [ ] Show a loading indicator on the login button while the auth call is in flight.
+- [ ] On success, GoRouter redirect logic in `router.dart` handles navigation — do NOT manually push routes.
+- [ ] On failure, show an inline error message (not a SnackBar) below the form.
+- [ ] "Forgot password?" link must navigate to `/forgot-password`.
+- [ ] Google Sign-In button must call the correct method in `auth_service.dart` and handle errors.
+
+### signup_screen.dart
+- [ ] Validate: name (non-empty), email (format), password (min 8 chars), confirm password (must match).
+- [ ] Show loading on submit button during the call.
+- [ ] On success, router redirect handles navigation — do NOT manually push.
+- [ ] On failure, show inline error below the form.
+
+### forgot_password_screen.dart
+- [ ] Validate email format before submission.
+- [ ] On success, show a confirmation message in-screen ("Check your inbox").
+- [ ] On failure, show an inline error.
+- [ ] Back button navigates to `/login`.
+
+---
+
+## SECTION 2 — ONBOARDING
+**Files to read first:** `lib/features/onboarding/`, `lib/features/onboarding/providers/`, `lib/services/firestore_service.dart`, `lib/data/database/app_database.dart`
+
+### onboarding_flow.dart
+- [ ] Every field collected (name, age, weight, height, goal, diet preference, sleep target, activity level) must be saved to the onboarding provider as the user progresses — not just on final submit.
+- [ ] On final submit: persist data to BOTH local Drift DB and Firestore using existing services.
+- [ ] After successful persist, mark onboarding as complete in the provider/shared prefs so the router redirect fires correctly.
+- [ ] If the user is already signed in (email/Google), pre-fill name and email fields from `auth_service.dart` current user.
+- [ ] Show a loading indicator on the final submit button.
+- [ ] Handle and display errors on final submit.
+
+---
+
+## SECTION 3 — DASHBOARD
+**Files to read first:** `lib/features/dashboard/`, `lib/features/dashboard/providers/`, `lib/data/database/app_database.dart`, `lib/services/firestore_service.dart`
+
+### dashboard_screen.dart
+- [ ] Greet the user by name — read from onboarding data or Firebase Auth display name, not hardcoded.
+- [ ] Daily calorie summary widget must read from today's meal logs in the local Drift DB, not mock data.
+- [ ] Daily step / activity ring (if present) must read from the relevant provider, not hardcoded values.
+- [ ] Gamification/streak data must come from the gamification provider or Drift DB, not hardcoded.
+- [ ] "Quick log" or shortcut buttons must navigate to the correct routes (`/nutrition/log`, `/workouts/active`).
+- [ ] If no data exists for today, show an empty state (not zeros that look like real data).
+- [ ] All async data must show a shimmer/skeleton loader while loading, and an error widget on failure.
+
+---
+
+## SECTION 4 — NUTRITION
+**Files to read first:** `lib/features/nutrition/`, `lib/data/database/app_database.dart`, `lib/services/gemini_client.dart`
+
+### nutrition_screen.dart
+- [ ] Macro summary (calories, protein, carbs, fat) must be computed from today's logged meals in Drift DB.
+- [ ] Meal list must display actual logged meals for today, grouped by meal type (breakfast/lunch/dinner/snack).
+- [ ] If no meals logged today, show a clear empty state with a CTA to log a meal.
+- [ ] Calorie goal shown must come from the user's onboarding/goals data, not a hardcoded number.
+- [ ] FAB or "+" button navigates to `/nutrition/log`.
+
+### log_meal_screen.dart
+- [ ] AI meal analysis (photo or text) must call the existing `gemini_client.dart` method — do not re-implement.
+- [ ] Show a loading state while Gemini is processing.
+- [ ] On Gemini response, pre-fill the meal name and macro fields — user can edit before saving.
+- [ ] On save, write the meal entry to the Drift DB using the existing database method.
+- [ ] On save success, pop back to `/nutrition` and trigger a provider refresh so the nutrition screen updates.
+- [ ] Handle Gemini errors gracefully with a user-facing message.
+
+---
+
+## SECTION 5 — WORKOUTS
+**Files to read first:** `lib/features/workouts/`, `lib/data/database/app_database.dart`
+
+### workouts_screen.dart
+- [ ] Workout list must come from the Drift DB or a seeded local list — not hardcoded inline widgets.
+- [ ] Each workout card tap must navigate to `/workouts/active` and pass the `workoutId` in `state.extra` as documented in the router.
+- [ ] Show an empty state if no workouts exist in the DB.
+- [ ] Completed workouts should look visually distinct from available ones.
+
+### active_workout_screen.dart
+- [ ] Must read the `workoutId` from `state.extra` (as per router docs) and load the correct workout from DB.
+- [ ] Exercise set completion (reps/weight done) must be tracked in local state during the session.
+- [ ] On "Finish Workout", write a workout log entry to Drift DB.
+- [ ] On finish, navigate back to `/workouts` and trigger a refresh.
+- [ ] Show a rest timer between sets if the workout data includes rest periods.
+
+---
+
+## SECTION 6 — PROGRESS
+**Files to read first:** `lib/features/progress/`, `lib/data/database/app_database.dart`
+
+### progress_screen.dart
+- [ ] Weight chart must read historical weight entries from Drift DB, not mock data points.
+- [ ] Measurements (if tracked) must read from DB.
+- [ ] "Log weight" / "Add measurement" actions must write to DB and refresh the chart.
+- [ ] If no history exists, show an empty state with a prompt to log the first entry.
+- [ ] Date range selector (week/month/all) must filter the DB query, not just filter a hardcoded list.
+
+---
+
+## SECTION 7 — AI COACH
+**Files to read first:** `lib/features/ai_coach/`, `lib/services/gemini_client.dart`, `lib/providers/gemini_provider.dart`
+
+### ai_coach_screen.dart
+- [ ] Chat history must persist across sessions — store messages in Drift DB or Firestore (use whichever already has a schema for it).
+- [ ] User messages must be sent to `gemini_client.dart` — do not re-implement the API call.
+- [ ] Show a typing indicator while waiting for Gemini response.
+- [ ] Handle Gemini errors with a retry option in the chat bubble.
+- [ ] The coach's context prompt must include the user's goals, diet preference, and recent activity — read these from onboarding data / DB, not hardcoded.
+- [ ] Send button must be disabled while a response is in flight.
+
+---
+
+## SECTION 8 — SETTINGS (highest priority for auth wiring)
+**Files to read first:** `lib/features/settings/`, `lib/services/auth_service.dart`, `lib/services/firestore_service.dart`, `lib/data/database/app_database.dart`
+
+### settings_screen.dart
+- [ ] Show the user's display name and email at the top, read from `auth_service.dart` current user.
+- [ ] If anonymous user, show "Guest" and a prominent "Sign In" CTA instead of account details.
+- [ ] Each settings tile must navigate to its correct sub-route (they are all already defined in the router).
+- [ ] Add a **"Log Out"** tile that calls `auth_service.dart` sign-out and lets the router redirect handle navigation.
+- [ ] Add a **"Delete Account"** option (behind a confirmation dialog) that calls the delete method in `auth_service.dart`.
+- [ ] App version number should be displayed at the bottom (use `package_info_plus` if already a dependency, otherwise skip).
+
+### edit_profile_screen.dart
+- [ ] Pre-fill name, email, and profile photo from Firebase Auth current user.
+- [ ] "Save" must call the update method in `auth_service.dart` and/or `firestore_service.dart`.
+- [ ] Show loading on save, and a success/error snackbar on completion.
+- [ ] Email change should trigger a re-verification email if the provider supports it.
+
+### edit_goals_screen.dart
+- [ ] Pre-fill all fields from the user's stored onboarding/goals data in Drift DB or Firestore.
+- [ ] "Save" must persist changes to BOTH local DB and Firestore.
+- [ ] After save, any provider that exposes goal data must be invalidated so the dashboard/nutrition screens reflect new goals immediately.
+
+### edit_diet_screen.dart
+- [ ] Pre-fill diet preference from stored onboarding data.
+- [ ] "Save" persists to DB and Firestore, invalidates relevant providers.
+
+### edit_sleep_screen.dart
+- [ ] Pre-fill sleep target from stored onboarding data.
+- [ ] "Save" persists to DB and Firestore, invalidates relevant providers.
+
+### faq_screen.dart
+- [ ] FAQ items should be a static list defined in the file or a constants file — not fetched remotely unless already wired.
+- [ ] Each item should expand/collapse (ExpansionTile).
+
+### legal_screen.dart
+- [ ] Must accept a `type` parameter (`privacy` or `terms`) and display the correct content.
+- [ ] If content is remote (URL), use a WebView or `url_launcher` — whichever is already a dependency.
+- [ ] If content is local markdown/string, render it properly.
+
+---
+
+## SECTION 9 — GLOBAL QUALITY PASS
+**Do this last, after all sections above are complete.**
+
+### Router (lib/router.dart)
+- [ ] Verify the anonymous user → onboarding → app shell redirect works end-to-end.
+- [ ] Verify that a signed-in user who completes onboarding cannot navigate back to `/onboarding` via back gesture.
+- [ ] Verify that a logged-out user cannot access any shell routes.
+- [ ] Verify that `/settings` sub-routes are accessible from the shell and back navigation returns to `/settings`, not `/dashboard`.
+
+### Provider hygiene (lib/providers/, lib/features/*/providers/)
+- [ ] Find any provider that returns hardcoded/mock data and replace with real DB or service calls.
+- [ ] Find any `FutureProvider` or `StreamProvider` that lacks a loading and error handler at the consumption site.
+- [ ] Find any screen that calls `ref.read(someProvider)` in the build method — replace with `ref.watch`.
+
+### Data consistency
+- [ ] Onboarding data fields (name, goal, calorie target, diet, sleep target) must be readable from a single source of truth (one provider or DB table). Identify it and make sure all screens read from the same place.
+- [ ] If a user edits their goals in `/settings/edit-goals`, the dashboard and nutrition screens must reflect it without a full app restart.
+
+---
+
+## FINAL CHECKLIST — before marking done
+- [ ] Cold start as a new user: onboarding flow completes, data persists, dashboard shows real data.
+- [ ] Cold start as returning user: lands on dashboard, all data loaded, no null errors.
+- [ ] Log out → log back in: data reloads correctly.
+- [ ] All settings sub-screens pre-fill correctly and save correctly.
+- [ ] No `print()` or `debugPrint()` statements left in production paths.
+- [ ] No hardcoded user IDs, emails, or names anywhere.
