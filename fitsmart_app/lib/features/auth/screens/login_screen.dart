@@ -58,7 +58,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
     try {
       await AuthService.signInAnonymously();
-      // Router redirect handles navigation on auth state change.
+      if (mounted) context.go('/onboarding');
     } catch (e) {
       if (mounted) setState(() => _errorMessage = 'Something went wrong. Please try again.');
     } finally {

@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -85,22 +87,33 @@ class _LogMealScreenState extends ConsumerState<LogMealScreen>
     });
 
     try {
+      // Detect MIME type from the picked file
+      final mimeType = file.mimeType ?? _mimeTypeFromPath(file.path);
+
       // Compress image before sending to Gemini
-      final compressed = await FlutterImageCompress.compressWithFile(
-        file.path,
-        minWidth: 512,
-        minHeight: 512,
-        quality: 75,
-      );
-      if (compressed == null || !mounted) {
-        setState(() => _isAnalyzing = false);
-        return;
+      Uint8List imageBytes;
+      if (kIsWeb) {
+        // flutter_image_compress doesn't support web file paths (blob URLs)
+        imageBytes = await file.readAsBytes();
+      } else {
+        final compressed = await FlutterImageCompress.compressWithFile(
+          file.path,
+          minWidth: 512,
+          minHeight: 512,
+          quality: 75,
+        );
+        if (compressed == null || !mounted) {
+          setState(() => _isAnalyzing = false);
+          return;
+        }
+        imageBytes = Uint8List.fromList(compressed);
       }
 
       final gemini = ref.read(geminiClientProvider);
       final result = await gemini.analyzeMealPhoto(
-        imageBytes: compressed,
+        imageBytes: imageBytes,
         userContext: _buildUserContext(),
+        mimeType: mimeType,
       );
 
       if (mounted) {
@@ -117,6 +130,7 @@ class _LogMealScreenState extends ConsumerState<LogMealScreen>
         );
       }
     } catch (e) {
+      debugPrint('Photo analysis error: $e');
       if (mounted) {
         setState(() => _isAnalyzing = false);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -127,6 +141,16 @@ class _LogMealScreenState extends ConsumerState<LogMealScreen>
         );
       }
     }
+  }
+
+  /// Infer MIME type from file extension.
+  static String _mimeTypeFromPath(String path) {
+    final lower = path.toLowerCase();
+    if (lower.endsWith('.png')) return 'image/png';
+    if (lower.endsWith('.webp')) return 'image/webp';
+    if (lower.endsWith('.gif')) return 'image/gif';
+    if (lower.endsWith('.heic') || lower.endsWith('.heif')) return 'image/heic';
+    return 'image/jpeg'; // default fallback
   }
 
   Future<void> _analyzeText() async {

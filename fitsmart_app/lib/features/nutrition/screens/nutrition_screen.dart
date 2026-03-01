@@ -259,17 +259,23 @@ class _MealSection extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Text(_mealEmoji(mealType),
-                      style: const TextStyle(fontSize: 18)),
-                  const SizedBox(width: AppSpacing.sm),
-                  Text(
-                    mealType,
-                    style: AppTypography.bodyMedium
-                        .copyWith(fontWeight: FontWeight.w700),
-                  ),
-                ],
+              Flexible(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(_mealEmoji(mealType),
+                        style: const TextStyle(fontSize: 18)),
+                    const SizedBox(width: AppSpacing.sm),
+                    Flexible(
+                      child: Text(
+                        mealType,
+                        style: AppTypography.bodyMedium
+                            .copyWith(fontWeight: FontWeight.w700),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
               ),
               Row(
                 children: [
@@ -632,10 +638,12 @@ class _MealPlanView extends StatelessWidget {
                           const Icon(Icons.check_box_outline_blank_rounded,
                               size: 16, color: AppColors.textTertiary),
                           const SizedBox(width: 8),
-                          Text(
-                            item.toString(),
-                            style: AppTypography.body
-                                .copyWith(color: AppColors.textSecondary),
+                          Expanded(
+                            child: Text(
+                              item.toString(),
+                              style: AppTypography.body
+                                  .copyWith(color: AppColors.textSecondary),
+                            ),
                           ),
                         ],
                       ),

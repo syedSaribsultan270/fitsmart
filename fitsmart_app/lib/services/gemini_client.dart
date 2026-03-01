@@ -64,7 +64,6 @@ class GeminiClient {
         temperature: 0.8,
         topK: 40,
         topP: 0.95,
-        maxOutputTokens: 2048,
       ),
       systemInstruction: Content.text(_chatSystemInstruction),
     );
@@ -147,6 +146,7 @@ ALWAYS:
   Future<Map<String, dynamic>> analyzeMealPhoto({
     required Uint8List imageBytes,
     required Map<String, dynamic> userContext,
+    String? mimeType,
   }) async {
     final imageHash = _hashBytes(imageBytes);
     final cacheKey = 'meal_photo_$imageHash';
@@ -158,7 +158,7 @@ ALWAYS:
       buildContent: () => [
         Content.multi([
           TextPart(_buildMealAnalysisPrompt(userContext)),
-          DataPart('image/jpeg', imageBytes),
+          DataPart(mimeType ?? 'image/jpeg', imageBytes),
         ]),
       ],
     );
@@ -323,6 +323,7 @@ Return JSON:
     required Map<String, dynamic> userContext,
     required List<Map<String, String>> history,
     Uint8List? imageBytes,
+    String? mimeType,
   }) async {
     try {
       final contents = <Content>[];
@@ -436,7 +437,7 @@ Respond as their personal AI coach. Be specific, actionable, and reference their
       if (imageBytes != null) {
         contents.add(Content.multi([
           TextPart(prompt),
-          DataPart('image/jpeg', imageBytes),
+          DataPart(mimeType ?? 'image/jpeg', imageBytes),
         ]));
       } else {
         contents.add(Content.text(prompt));
@@ -451,7 +452,7 @@ Respond as their personal AI coach. Be specific, actionable, and reference their
       };
     } catch (e) {
       if (e is GeminiException) rethrow;
-      throw GeminiException('AI request failed: ${e.toString()}');
+      throw _friendlyException(e);
     }
   }
 
@@ -515,8 +516,29 @@ Return JSON:
       return parsed;
     } catch (e) {
       if (e is GeminiException) rethrow;
-      throw GeminiException('AI request failed: ${e.toString()}');
+      throw _friendlyException(e);
     }
+  }
+
+  /// Converts raw API errors into user-friendly messages.
+  static GeminiException _friendlyException(Object e) {
+    final msg = e.toString().toLowerCase();
+    if (msg.contains('quota') || msg.contains('rate') || msg.contains('429') || msg.contains('resource_exhausted')) {
+      return const GeminiException(
+        'AI is taking a breather ☕ Too many requests — wait a moment and try again.',
+        isRateLimited: true,
+      );
+    }
+    if (msg.contains('api_key') || msg.contains('permission') || msg.contains('403')) {
+      return const GeminiException('API key issue — please check your Gemini API key.');
+    }
+    if (msg.contains('timeout') || msg.contains('deadline')) {
+      return const GeminiException('Request timed out — check your internet and try again.');
+    }
+    if (msg.contains('network') || msg.contains('socket') || msg.contains('connection')) {
+      return const GeminiException('No internet connection — please check your network.');
+    }
+    return GeminiException('Something went wrong. Please try again.');
   }
 
   String _buildUserContextString(Map<String, dynamic> ctx) {

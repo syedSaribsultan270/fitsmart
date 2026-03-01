@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 /// Central Firestore service.
 /// Document layout:
@@ -28,6 +29,23 @@ class FirestoreService {
   }
 
   static Future<Map<String, dynamic>?> getProfile(String uid) async {
+    // On web the very first Firestore server call can hang for 10+ s
+    // while the SDK establishes its WebChannel.  Try the local cache
+    // first (instant if the document was fetched before), then fall
+    // back to the server.
+    if (kIsWeb) {
+      try {
+        final cached = await _userDoc(uid)
+            .get(const GetOptions(source: Source.cache));
+        if (cached.exists) {
+          final d = cached.data() as Map<String, dynamic>?;
+          final profile = d?['profile'] as Map<String, dynamic>?;
+          if (profile != null) return profile;
+        }
+      } catch (_) {
+        // Cache miss — fall through to server.
+      }
+    }
     final snap = await _userDoc(uid).get();
     if (!snap.exists) return null;
     final d = snap.data() as Map<String, dynamic>?;

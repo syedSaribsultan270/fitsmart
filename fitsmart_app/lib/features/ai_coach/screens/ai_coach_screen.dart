@@ -324,7 +324,7 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
     };
   }
 
-  Future<void> _sendMessage(String text, {Uint8List? imageBytes}) async {
+  Future<void> _sendMessage(String text, {Uint8List? imageBytes, String? mimeType}) async {
     if (text.trim().isEmpty && imageBytes == null) return;
 
     final userText = text.trim().isNotEmpty ? text.trim() : 'Analyze this image';
@@ -345,6 +345,7 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
         userContext: userContext,
         history: _history,
         imageBytes: imageBytes,
+        mimeType: mimeType,
       );
 
       final response = result['response'] as String? ??
@@ -364,7 +365,8 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
         _scrollToBottom();
         _saveChat();
       }
-    } on GeminiException catch (_) {
+    } on GeminiException catch (e) {
+      debugPrint('GeminiException in chat: $e');
       if (mounted) {
         setState(() {
           _isTyping = false;
@@ -373,12 +375,15 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
             isAi: true,
             isError: true,
             failedUserText: userText,
+            failedImageBytes: imageBytes,
+            failedMimeType: mimeType,
           ));
         });
         _scrollToBottom();
         _saveChat();
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('Unexpected error in chat: $e');
       if (mounted) {
         setState(() {
           _isTyping = false;
@@ -387,6 +392,8 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
             isAi: true,
             isError: true,
             failedUserText: userText,
+            failedImageBytes: imageBytes,
+            failedMimeType: mimeType,
           ));
         });
         _scrollToBottom();
@@ -407,10 +414,21 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
       if (picked == null) return;
 
       final bytes = await picked.readAsBytes();
-      await _sendMessage(_messageCtrl.text, imageBytes: bytes);
+      final mimeType = picked.mimeType ?? _mimeTypeFromPath(picked.name);
+      await _sendMessage(_messageCtrl.text, imageBytes: bytes, mimeType: mimeType);
     } catch (e) {
       debugPrint('Image picker error: $e');
     }
+  }
+
+  /// Infer MIME type from file name/extension.
+  static String _mimeTypeFromPath(String path) {
+    final lower = path.toLowerCase();
+    if (lower.endsWith('.png')) return 'image/png';
+    if (lower.endsWith('.webp')) return 'image/webp';
+    if (lower.endsWith('.gif')) return 'image/gif';
+    if (lower.endsWith('.heic') || lower.endsWith('.heif')) return 'image/heic';
+    return 'image/jpeg';
   }
 
   void _scrollToBottom() {
@@ -525,7 +543,11 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
                       ? () {
                           // Remove the error bubble and re-send
                           setState(() => _messages.removeAt(i));
-                          _sendMessage(msg.failedUserText!);
+                          _sendMessage(
+                            msg.failedUserText!,
+                            imageBytes: msg.failedImageBytes,
+                            mimeType: msg.failedMimeType,
+                          );
                         }
                       : null,
                 )
@@ -660,6 +682,8 @@ class _Message {
   final Uint8List? imageBytes;
   final bool isError;
   final String? failedUserText;
+  final Uint8List? failedImageBytes;
+  final String? failedMimeType;
   const _Message({
     required this.text,
     required this.isAi,
@@ -667,6 +691,8 @@ class _Message {
     this.imageBytes,
     this.isError = false,
     this.failedUserText,
+    this.failedImageBytes,
+    this.failedMimeType,
   });
 }
 

@@ -56,7 +56,9 @@ final appRouter = GoRouter(
     final user = AuthService.currentUser;
     final isAuthRoute = loc == '/login' || loc == '/signup' || loc == '/forgot-password';
     final isOnboardingRoute = loc == '/onboarding';
-    final onboardingDone = await OnboardingNotifier.isOnboardingComplete();
+
+    final onboardingDone =
+        await OnboardingNotifier.isOnboardingCompleteLocal();
 
     // ── 1. No user at all → force to login ─────────────────────────
     if (user == null) {
@@ -65,25 +67,26 @@ final appRouter = GoRouter(
 
     // ── 2. Anonymous user ──────────────────────────────────────────
     if (user.isAnonymous) {
-      // Guest who completed onboarding → allow into the app
       if (onboardingDone) {
         if (isAuthRoute || isOnboardingRoute) return '/dashboard';
         return null;
       }
-      // Guest who hasn't completed onboarding → allow onboarding + auth
+      // Not onboarded: allow onboarding & auth routes, but default
+      // to login (not onboarding) so a stale anonymous session
+      // doesn't trap the user.
       if (isOnboardingRoute || isAuthRoute) return null;
-      return '/onboarding';
+      return '/login';
     }
 
     // ── 3. Real user (email/Google) ────────────────────────────────
-    if (!onboardingDone) {
-      return isOnboardingRoute ? null : '/onboarding';
+    if (onboardingDone) {
+      if (isAuthRoute || isOnboardingRoute) return '/dashboard';
+      return null;
     }
 
-    // Signed in + onboarding done → don't show auth or onboarding
-    if (isAuthRoute || isOnboardingRoute) return '/dashboard';
-
-    return null;
+    // Onboarding not done → send to onboarding
+    if (isOnboardingRoute) return null;
+    return '/onboarding';
   },
   routes: [
     // Auth routes
