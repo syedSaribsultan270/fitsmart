@@ -1,6 +1,14 @@
 // Generated/configured for FitSmart AI
 // Web config from Firebase console: fitsmart-9c7da
 // Android/iOS configs pending (add google-services.json + GoogleService-Info.plist)
+//
+// ⚠️ SECURITY NOTE:
+// These Firebase API keys are CLIENT-SIDE identifiers (like a project ID).
+// They are NOT secret credentials. Firebase security is enforced by:
+//   1. Firebase Security Rules (firestore.rules)
+//   2. Firebase App Check (enable in Firebase Console)
+//   3. Google Cloud API key restrictions (restrict by app bundle ID / SHA-1)
+// See: https://firebase.google.com/docs/projects/api-keys
 
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
