@@ -65,7 +65,7 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
       final notifier = ref.read(onboardingProvider.notifier);
       await notifier.saveToPrefs();
 
-      // 2. Sync profile to Firestore
+      // 2. Sync profile to Firestore (fire-and-forget — don't block navigation)
       final uid = AuthService.uid;
       if (uid != null) {
         final profileData = ref.read(onboardingProvider).toJson();
@@ -80,7 +80,8 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
           profileData['email'] = email;
         }
 
-        await FirestoreService.saveProfile(uid, profileData);
+        // Don't await — navigate immediately, sync in background
+        FirestoreService.saveProfile(uid, profileData).catchError((_) {});
       }
 
       if (mounted) context.go('/dashboard');

@@ -201,28 +201,6 @@ class SettingsScreen extends ConsumerWidget {
 
           const SizedBox(height: AppSpacing.lg),
 
-          _SectionHeader(title: 'AI & Data'),
-          _SettingsTile(
-            icon: Icons.auto_awesome_outlined,
-            label: 'AI Usage',
-            subtitle: 'Gemini API (free tier)',
-            onTap: () => _showAiUsageDialog(context),
-          ),
-          _SettingsTile(
-            icon: Icons.cloud_upload_outlined,
-            label: 'Export Data',
-            subtitle: 'Download your fitness history',
-            onTap: () => _showExportDialog(context, ref),
-          ),
-          _SettingsTile(
-            icon: Icons.delete_outline_rounded,
-            label: 'Clear Cache',
-            subtitle: 'Reset AI response cache',
-            onTap: () => _showClearCacheDialog(context, ref),
-          ),
-
-          const SizedBox(height: AppSpacing.lg),
-
           _SectionHeader(title: 'About'),
           _SettingsTile(
             icon: Icons.star_outline_rounded,
@@ -308,64 +286,6 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  void _showAiUsageDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.bgSecondary,
-        title: Text('AI Usage', style: AppTypography.h3),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'You are using the Gemini API free tier.',
-              style: AppTypography.body.copyWith(color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              'Free tier limits are managed by Google. If you hit a quota error, wait a moment and try again.',
-              style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Got it', style: AppTypography.bodyMedium.copyWith(color: AppColors.lime)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showExportDialog(BuildContext context, WidgetRef ref) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.bgSecondary,
-        title: Text('Export Data', style: AppTypography.h3),
-        content: Text(
-          'Export all your meals, workouts, and weight logs as JSON. This file can be used to back up or transfer your data.',
-          style: AppTypography.body.copyWith(color: AppColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary)),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              SnackbarService.info('Export feature coming soon!');
-            },
-            child: Text('Export', style: AppTypography.bodyMedium.copyWith(color: AppColors.lime)),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showUnitsDialog(BuildContext context, WidgetRef ref) {
     final isMetric = ref.read(settingsProvider).isMetric;
     showModalBottomSheet(
@@ -402,34 +322,6 @@ class SettingsScreen extends ConsumerWidget {
             const SizedBox(height: AppSpacing.xl),
           ],
         ),
-      ),
-    );
-  }
-
-  void _showClearCacheDialog(BuildContext context, WidgetRef ref) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.bgSecondary,
-        title: Text('Clear AI Cache', style: AppTypography.h3),
-        content: Text(
-          'This will remove all cached AI responses. The app will re-fetch fresh responses for meals and insights.',
-          style: AppTypography.body.copyWith(color: AppColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary)),
-          ),
-          TextButton(
-            onPressed: () {
-              ref.read(geminiClientProvider).clearCache();
-              Navigator.pop(context);
-              SnackbarService.success('Cache cleared successfully');
-            },
-            child: Text('Clear', style: AppTypography.bodyMedium.copyWith(color: AppColors.error)),
-          ),
-        ],
       ),
     );
   }

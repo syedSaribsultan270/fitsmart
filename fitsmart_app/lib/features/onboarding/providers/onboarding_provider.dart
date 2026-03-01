@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../models/onboarding_data.dart';
 import '../../../core/utils/tdee_calculator.dart';
+import '../../../services/auth_service.dart';
+import '../../../services/firestore_service.dart';
 
 class OnboardingNotifier extends StateNotifier<OnboardingData> {
   OnboardingNotifier() : super(OnboardingData());
@@ -71,7 +73,28 @@ class OnboardingNotifier extends StateNotifier<OnboardingData> {
 
   static Future<bool> isOnboardingComplete() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool('onboarding_complete') ?? false;
+    final localDone = prefs.getBool('onboarding_complete') ?? false;
+    if (localDone) return true;
+
+    // Fallback: check Firestore for an existing profile
+    // (covers cases where local storage was cleared, e.g. web port change)
+    final uid = AuthService.uid;
+    if (uid != null) {
+      try {
+        final profile = await FirestoreService.getProfile(uid)
+            .timeout(const Duration(seconds: 3));
+        if (profile != null && profile.isNotEmpty) {
+          // Re-cache locally so subsequent checks are instant
+          await prefs.setBool('onboarding_complete', true);
+          await prefs.setString('onboarding_data', jsonEncode(profile));
+          return true;
+        }
+      } catch (_) {
+        // Firestore unavailable — trust local state
+      }
+    }
+
+    return false;
   }
 }
 
