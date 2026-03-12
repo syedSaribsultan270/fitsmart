@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/theme_extensions.dart';
 import '../../../models/onboarding_data.dart';
 import '../../../features/dashboard/providers/dashboard_provider.dart';
 import '../../../providers/settings_provider.dart';
@@ -97,7 +97,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       // Sync to Firestore
       final uid = AuthService.uid;
       if (uid != null) {
-        FirestoreService.saveProfile(uid, data.toJson()).catchError((_) {});
+        FirestoreService.saveProfile(uid, data.toJson()).catchError((e) { debugPrint('[Firestore] profile sync failed: $e'); });
       }
 
       // Invalidate profile provider so dashboard recalculates
@@ -127,7 +127,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
+      backgroundColor: context.colors.bgPrimary,
       appBar: AppBar(
         title: Text('Edit Profile', style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w700)),
         leading: IconButton(
@@ -138,11 +138,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           TextButton(
             onPressed: _isLoading ? null : _save,
             child: _isLoading
-                ? const SizedBox(
+                ? SizedBox(
                     width: 20, height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.lime),
+                    child: CircularProgressIndicator(strokeWidth: 2, color: context.colors.lime),
                   )
-                : Text('Save', style: AppTypography.bodyMedium.copyWith(color: AppColors.lime)),
+                : Text('Save', style: AppTypography.bodyMedium.copyWith(color: context.colors.lime)),
           ),
         ],
       ),
@@ -154,15 +154,20 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             child: Column(
               children: [
                 if (_photoUrl != null && _photoUrl!.isNotEmpty)
-                  CircleAvatar(radius: 40, backgroundImage: NetworkImage(_photoUrl!))
+                  CircleAvatar(
+                    radius: 40,
+                    backgroundImage: NetworkImage(_photoUrl!),
+                    onBackgroundImageError: (_, __) {},
+                    child: null,
+                  )
                 else
                   Container(
                     width: 80,
                     height: 80,
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: LinearGradient(
-                        colors: [AppColors.lime, AppColors.cyan],
+                        colors: [context.colors.lime, context.colors.cyan],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
@@ -177,7 +182,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 const SizedBox(height: AppSpacing.sm),
                 Text(
                   'Photo synced from your Google account',
-                  style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+                  style: AppTypography.caption.copyWith(color: context.colors.textTertiary),
                 ),
               ],
             ),
@@ -195,13 +200,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               padding: const EdgeInsets.only(top: 4),
               child: Text(
                 'Changing your email will send a verification link to the new address.',
-                style: AppTypography.caption.copyWith(color: AppColors.textTertiary, fontSize: 11),
+                style: AppTypography.caption.copyWith(color: context.colors.textTertiary, fontSize: 11),
               ),
             ),
           const SizedBox(height: AppSpacing.md),
 
           // Gender selector
-          Text('Gender', style: AppTypography.caption.copyWith(color: AppColors.textTertiary)),
+          Text('Gender', style: AppTypography.caption.copyWith(color: context.colors.textTertiary)),
           const SizedBox(height: AppSpacing.sm),
           Wrap(
             spacing: 8,
@@ -211,13 +216,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 label: Text(g.replaceAll('_', ' ').toUpperCase()),
                 selected: isSelected,
                 onSelected: (_) => setState(() => _gender = g),
-                selectedColor: AppColors.lime.withValues(alpha: 0.2),
+                selectedColor: context.colors.lime.withValues(alpha: 0.2),
                 labelStyle: AppTypography.caption.copyWith(
-                  color: isSelected ? AppColors.lime : AppColors.textSecondary,
+                  color: isSelected ? context.colors.lime : context.colors.textSecondary,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                 ),
-                side: BorderSide(color: isSelected ? AppColors.lime : AppColors.surfaceCardBorder),
-                backgroundColor: AppColors.surfaceCard,
+                side: BorderSide(color: isSelected ? context.colors.lime : context.colors.surfaceCardBorder),
+                backgroundColor: context.colors.surfaceCard,
               );
             }).toList(),
           ),

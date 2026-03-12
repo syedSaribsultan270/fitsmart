@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
-import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
+import '../theme/theme_extensions.dart';
 
 class SkeletonBox extends StatelessWidget {
   final double? width;
@@ -17,14 +17,15 @@ class SkeletonBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Shimmer.fromColors(
-      baseColor: AppColors.bgTertiary,
-      highlightColor: AppColors.bgElevated,
+      baseColor: c.bgTertiary,
+      highlightColor: c.bgElevated,
       child: Container(
         width: width,
         height: height,
         decoration: BoxDecoration(
-          color: AppColors.bgTertiary,
+          color: c.bgTertiary,
           borderRadius: BorderRadius.circular(radius),
         ),
       ),
@@ -39,15 +40,16 @@ class SkeletonCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Shimmer.fromColors(
-      baseColor: AppColors.surfaceCard,
-      highlightColor: AppColors.bgElevated,
+      baseColor: c.surfaceCard,
+      highlightColor: c.bgElevated,
       child: Container(
         height: height,
         decoration: BoxDecoration(
-          color: AppColors.surfaceCard,
+          color: c.surfaceCard,
           borderRadius: BorderRadius.circular(AppRadius.lg),
-          border: Border.all(color: AppColors.surfaceCardBorder),
+          border: Border.all(color: c.surfaceCardBorder),
         ),
       ),
     );

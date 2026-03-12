@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/theme_extensions.dart';
 
 class FaqScreen extends StatelessWidget {
   const FaqScreen({super.key});
@@ -45,7 +45,7 @@ class FaqScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
+      backgroundColor: context.colors.bgPrimary,
       appBar: AppBar(
         title: Text('Help & FAQ', style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w700)),
         leading: IconButton(
@@ -61,25 +61,25 @@ class FaqScreen extends StatelessWidget {
           final (question, answer) = _faqs[i];
           return ExpansionTile(
             title: Text(question, style: AppTypography.bodyMedium),
-            collapsedIconColor: AppColors.textTertiary,
-            iconColor: AppColors.lime,
+            collapsedIconColor: context.colors.textTertiary,
+            iconColor: context.colors.lime,
             tilePadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 4),
             collapsedShape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppRadius.md),
-              side: const BorderSide(color: AppColors.surfaceCardBorder),
+              side: BorderSide(color: context.colors.surfaceCardBorder),
             ),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppRadius.md),
-              side: const BorderSide(color: AppColors.lime),
+              side: BorderSide(color: context.colors.lime),
             ),
-            collapsedBackgroundColor: AppColors.surfaceCard,
-            backgroundColor: AppColors.surfaceCard,
+            collapsedBackgroundColor: context.colors.surfaceCard,
+            backgroundColor: context.colors.surfaceCard,
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(AppSpacing.md, 0, AppSpacing.md, AppSpacing.md),
                 child: Text(
                   answer,
-                  style: AppTypography.body.copyWith(color: AppColors.textSecondary),
+                  style: AppTypography.body.copyWith(color: context.colors.textSecondary),
                 ),
               ),
             ],

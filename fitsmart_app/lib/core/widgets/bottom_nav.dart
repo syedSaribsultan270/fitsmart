@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_typography.dart';
+import '../theme/theme_extensions.dart';
 
 class AppShell extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
@@ -18,8 +18,9 @@ class AppShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
+      backgroundColor: c.bgPrimary,
       body: navigationShell,
       bottomNavigationBar: _BottomNav(
         currentIndex: navigationShell.currentIndex,
@@ -53,11 +54,12 @@ class _BottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.bgSecondary,
+      decoration: BoxDecoration(
+        color: c.bgSecondary,
         border: Border(
-          top: BorderSide(color: AppColors.surfaceCardBorder, width: 1),
+          top: BorderSide(color: c.surfaceCardBorder, width: 1),
         ),
       ),
       child: SafeArea(
@@ -83,15 +85,15 @@ class _BottomNav extends StatelessWidget {
                           width: 44,
                           height: 44,
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [AppColors.lime, Color(0xFF00E676)],
+                            gradient: LinearGradient(
+                              colors: [c.lime, c.limeMuted],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: AppColors.lime.withValues(alpha: isActive ? 0.5 : 0.25),
+                                color: c.lime.withValues(alpha: isActive ? 0.5 : 0.25),
                                 blurRadius: isActive ? 14 : 8,
                                 spreadRadius: isActive ? 1 : 0,
                               ),
@@ -108,8 +110,8 @@ class _BottomNav extends StatelessWidget {
                           item.label,
                           style: AppTypography.overline.copyWith(
                             color: isActive
-                                ? AppColors.lime
-                                : AppColors.textSecondary,
+                                ? c.lime
+                                : c.textSecondary,
                             fontSize: 9,
                             fontWeight: FontWeight.w700,
                           ),
@@ -138,7 +140,7 @@ class _BottomNav extends StatelessWidget {
                               horizontal: 12, vertical: 4),
                           decoration: BoxDecoration(
                             color: isActive
-                                ? AppColors.limeGlow
+                                ? c.limeGlow
                                 : Colors.transparent,
                             borderRadius:
                                 BorderRadius.circular(AppRadius.md),
@@ -146,8 +148,8 @@ class _BottomNav extends StatelessWidget {
                           child: Icon(
                             item.icon,
                             color: isActive
-                                ? AppColors.lime
-                                : AppColors.textTertiary,
+                                ? c.lime
+                                : c.textTertiary,
                             size: 20,
                           ),
                         ),
@@ -156,8 +158,8 @@ class _BottomNav extends StatelessWidget {
                           item.label,
                           style: AppTypography.overline.copyWith(
                             color: isActive
-                                ? AppColors.lime
-                                : AppColors.textTertiary,
+                                ? c.lime
+                                : c.textTertiary,
                             fontSize: 9,
                             fontWeight: isActive
                                 ? FontWeight.w700

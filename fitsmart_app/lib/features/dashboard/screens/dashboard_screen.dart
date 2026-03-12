@@ -7,6 +7,7 @@ import '../providers/dashboard_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/theme_extensions.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/calorie_ring.dart';
 import '../../../core/widgets/macro_bar.dart';
@@ -17,6 +18,8 @@ import '../../../core/widgets/skeleton_loader.dart';
 import '../../../providers/gemini_provider.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/snackbar_service.dart';
+import '../../../core/utils/meal_utils.dart';
+import '../../../core/widgets/upgrade_prompt_banner.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -31,13 +34,15 @@ class DashboardScreen extends ConsumerWidget {
         ? displayName.split(' ').first
         : null;
 
+    final colors = context.colors;
+
     return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
+      backgroundColor: colors.bgPrimary,
       body: CustomScrollView(
         slivers: [
           // App bar
           SliverAppBar(
-            backgroundColor: AppColors.bgPrimary,
+            backgroundColor: colors.bgPrimary,
             floating: true,
             pinned: false,
             title: Row(
@@ -49,7 +54,7 @@ class DashboardScreen extends ConsumerWidget {
                     Text(
                       _greeting(),
                       style: AppTypography.caption.copyWith(
-                        color: AppColors.textTertiary,
+                        color: colors.textTertiary,
                       ),
                     ),
                     Text(
@@ -68,9 +73,9 @@ class DashboardScreen extends ConsumerWidget {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.bgTertiary,
+                    color: colors.bgTertiary,
                     borderRadius: BorderRadius.circular(AppRadius.full),
-                    border: Border.all(color: AppColors.surfaceCardBorder),
+                    border: Border.all(color: colors.surfaceCardBorder),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -85,8 +90,8 @@ class DashboardScreen extends ConsumerWidget {
                         style: AppTypography.bodyMedium.copyWith(
                           fontWeight: FontWeight.w700,
                           color: gamification.currentStreak > 0
-                              ? AppColors.lime
-                              : AppColors.textTertiary,
+                              ? colors.lime
+                              : colors.textTertiary,
                         ),
                       ),
                     ],
@@ -96,7 +101,7 @@ class DashboardScreen extends ConsumerWidget {
                 // Settings
                 IconButton(
                   icon: const Icon(Icons.settings_outlined, size: 22),
-                  color: AppColors.textTertiary,
+                  color: colors.textTertiary,
                   onPressed: () => context.push('/settings'),
                 ),
               ],
@@ -110,8 +115,8 @@ class DashboardScreen extends ConsumerWidget {
               child: Padding(
                 padding: const EdgeInsets.all(AppSpacing.pagePadding),
                 child: AppCard(
-                  backgroundColor: AppColors.errorBg,
-                  borderColor: AppColors.error.withValues(alpha: 0.3),
+                  backgroundColor: colors.errorBg,
+                  borderColor: colors.error.withValues(alpha: 0.3),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -127,7 +132,7 @@ class DashboardScreen extends ConsumerWidget {
                       Text(
                         'Check your connection and try again',
                         style: AppTypography.caption.copyWith(
-                          color: AppColors.textTertiary,
+                          color: colors.textTertiary,
                         ),
                       ),
                     ],
@@ -140,6 +145,9 @@ class DashboardScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(AppSpacing.pagePadding),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
+                  // Upgrade prompt for anonymous users
+                  const UpgradePromptBanner(),
+
                   // XP bar
                   XpProgressBar(
                     totalXp: gamification.totalXp,
@@ -220,6 +228,7 @@ class _CalorieMacroCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colors = context.colors;
     final workoutsAsync = ref.watch(todaysWorkoutsProvider);
     final workouts = workoutsAsync.valueOrNull ?? [];
     final burnedCal = workouts.fold<double>(
@@ -252,7 +261,7 @@ class _CalorieMacroCard extends ConsumerWidget {
                     Text(
                       'MACROS',
                       style: AppTypography.overline.copyWith(
-                        color: AppColors.textTertiary,
+                        color: colors.textTertiary,
                       ),
                     ),
                     const SizedBox(height: AppSpacing.md),
@@ -293,10 +302,10 @@ class _CalorieMacroCard extends ConsumerWidget {
                   vertical: 10,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.lime.withValues(alpha: 0.06),
+                  color: colors.lime.withValues(alpha: 0.06),
                   borderRadius: BorderRadius.circular(AppRadius.md),
                   border: Border.all(
-                    color: AppColors.lime.withValues(alpha: 0.15),
+                    color: colors.lime.withValues(alpha: 0.15),
                   ),
                 ),
                 child: Row(
@@ -307,7 +316,7 @@ class _CalorieMacroCard extends ConsumerWidget {
                       child: Text(
                         'No meals logged yet — tap + to start tracking',
                         style: AppTypography.caption.copyWith(
-                          color: AppColors.textTertiary,
+                          color: colors.textTertiary,
                         ),
                       ),
                     ),
@@ -320,7 +329,7 @@ class _CalorieMacroCard extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              color: AppColors.bgTertiary,
+              color: colors.bgTertiary,
               borderRadius: BorderRadius.circular(AppRadius.md),
             ),
             child: Row(
@@ -330,28 +339,28 @@ class _CalorieMacroCard extends ConsumerWidget {
                   label: 'Remaining',
                   value:
                       '${(nutrition.targetCalories - nutrition.consumedCalories).clamp(0, double.infinity).toStringAsFixed(0)} kcal',
-                  color: AppColors.lime,
+                  color: colors.lime,
                 ),
                 Container(
                   width: 1,
                   height: 24,
-                  color: AppColors.surfaceCardBorder,
+                  color: colors.surfaceCardBorder,
                 ),
                 _QuickStat(
                   label: 'Burned',
                   value: '${burnedCal.toStringAsFixed(0)} kcal',
-                  color: AppColors.coral,
+                  color: colors.coral,
                 ),
                 Container(
                   width: 1,
                   height: 24,
-                  color: AppColors.surfaceCardBorder,
+                  color: colors.surfaceCardBorder,
                 ),
                 _QuickStat(
                   label: 'Net',
                   value:
                       '${(nutrition.consumedCalories - burnedCal).toStringAsFixed(0)} kcal',
-                  color: AppColors.textSecondary,
+                  color: colors.textSecondary,
                 ),
               ],
             ),
@@ -362,9 +371,9 @@ class _CalorieMacroCard extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              color: AppColors.info.withValues(alpha: 0.06),
+              color: colors.info.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(AppRadius.md),
-              border: Border.all(color: AppColors.info.withValues(alpha: 0.15)),
+              border: Border.all(color: colors.info.withValues(alpha: 0.15)),
             ),
             child: Row(
               children: [
@@ -373,7 +382,7 @@ class _CalorieMacroCard extends ConsumerWidget {
                 Text(
                   'Water',
                   style: AppTypography.bodyMedium.copyWith(
-                    color: AppColors.info,
+                    color: colors.info,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -381,14 +390,14 @@ class _CalorieMacroCard extends ConsumerWidget {
                 Text(
                   '${(waterMl / 1000).toStringAsFixed(1)}L',
                   style: AppTypography.bodyMedium.copyWith(
-                    color: AppColors.info,
+                    color: colors.info,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 Text(
                   ' / 2.5L',
                   style: AppTypography.caption.copyWith(
-                    color: AppColors.textTertiary,
+                    color: colors.textTertiary,
                   ),
                 ),
               ],
@@ -423,7 +432,7 @@ class _QuickStat extends StatelessWidget {
         ),
         Text(
           label,
-          style: AppTypography.overline.copyWith(color: AppColors.textTertiary),
+          style: AppTypography.overline.copyWith(color: context.colors.textTertiary),
         ),
       ],
     );
@@ -433,6 +442,7 @@ class _QuickStat extends StatelessWidget {
 class _WorkoutTodayCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colors = context.colors;
     final workoutsAsync = ref.watch(todaysWorkoutsProvider);
 
     if (workoutsAsync.isLoading) return const SkeletonCard(height: 150);
@@ -444,13 +454,13 @@ class _WorkoutTodayCard extends ConsumerWidget {
             Text(
               'TODAY',
               style: AppTypography.overline.copyWith(
-                color: AppColors.textTertiary,
+                color: colors.textTertiary,
               ),
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
               'Couldn\'t load workouts',
-              style: AppTypography.caption.copyWith(color: AppColors.error),
+              style: AppTypography.caption.copyWith(color: colors.error),
             ),
           ],
         ),
@@ -477,7 +487,7 @@ class _WorkoutTodayCard extends ConsumerWidget {
               Text(
                 'TODAY',
                 style: AppTypography.overline.copyWith(
-                  color: AppColors.textTertiary,
+                  color: colors.textTertiary,
                 ),
               ),
               Icon(
@@ -485,7 +495,7 @@ class _WorkoutTodayCard extends ConsumerWidget {
                     ? Icons.check_circle_rounded
                     : Icons.fitness_center_rounded,
                 size: 16,
-                color: done ? AppColors.success : AppColors.cyan,
+                color: done ? colors.success : colors.cyan,
               ),
             ],
           ),
@@ -503,19 +513,19 @@ class _WorkoutTodayCard extends ConsumerWidget {
                 ? '$totalDuration min · ${totalCal.toStringAsFixed(0)} kcal'
                 : 'Tap to start a session',
             style: AppTypography.caption.copyWith(
-              color: AppColors.textTertiary,
+              color: colors.textTertiary,
             ),
           ),
           const SizedBox(height: AppSpacing.md),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: (done ? AppColors.success : AppColors.cyan).withValues(
+              color: (done ? colors.success : colors.cyan).withValues(
                 alpha: 0.1,
               ),
               borderRadius: BorderRadius.circular(AppRadius.full),
               border: Border.all(
-                color: (done ? AppColors.success : AppColors.cyan).withValues(
+                color: (done ? colors.success : colors.cyan).withValues(
                   alpha: 0.3,
                 ),
               ),
@@ -523,7 +533,7 @@ class _WorkoutTodayCard extends ConsumerWidget {
             child: Text(
               done ? 'View Details →' : 'Start Workout →',
               style: AppTypography.caption.copyWith(
-                color: done ? AppColors.success : AppColors.cyan,
+                color: done ? colors.success : colors.cyan,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -540,6 +550,7 @@ class _StreakCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final milestones = [3, 7, 14, 30, 60, 90];
     final nextMilestone = milestones.firstWhere(
       (m) => m > streak,
@@ -556,7 +567,7 @@ class _StreakCard extends StatelessWidget {
               Text(
                 'STREAK',
                 style: AppTypography.overline.copyWith(
-                  color: AppColors.textTertiary,
+                  color: colors.textTertiary,
                 ),
               ),
               Text(
@@ -569,21 +580,21 @@ class _StreakCard extends StatelessWidget {
           Text(
             '$streak',
             style: AppTypography.h1.copyWith(
-              color: streak > 0 ? AppColors.lime : AppColors.textTertiary,
+              color: streak > 0 ? colors.lime : colors.textTertiary,
               fontWeight: FontWeight.w800,
             ),
           ),
           Text(
             streak == 1 ? 'day streak' : 'days streak',
             style: AppTypography.caption.copyWith(
-              color: AppColors.textTertiary,
+              color: colors.textTertiary,
             ),
           ),
           const SizedBox(height: AppSpacing.md),
           Text(
             '$nextMilestone days = 🔥',
             style: AppTypography.overline.copyWith(
-              color: AppColors.textTertiary,
+              color: colors.textTertiary,
             ),
           ),
         ],
@@ -595,6 +606,7 @@ class _StreakCard extends StatelessWidget {
 class _DailyChallengeCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colors = context.colors;
     final nutrition = ref.watch(dailyNutritionProvider);
     final proteinTarget = nutrition.targetProtein;
     final proteinConsumed = nutrition.consumedProtein;
@@ -603,14 +615,14 @@ class _DailyChallengeCard extends ConsumerWidget {
     final done = proteinConsumed >= proteinTarget;
 
     return GlowCard(
-      glowColor: done ? AppColors.success : AppColors.warning,
+      glowColor: done ? colors.success : colors.warning,
       child: Row(
         children: [
           Container(
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: (done ? AppColors.success : AppColors.warning).withValues(
+              color: (done ? colors.success : colors.warning).withValues(
                 alpha: 0.15,
               ),
               shape: BoxShape.circle,
@@ -630,7 +642,7 @@ class _DailyChallengeCard extends ConsumerWidget {
                 Text(
                   'DAILY CHALLENGE',
                   style: AppTypography.overline.copyWith(
-                    color: done ? AppColors.success : AppColors.warning,
+                    color: done ? colors.success : colors.warning,
                   ),
                 ),
                 Text(
@@ -642,7 +654,7 @@ class _DailyChallengeCard extends ConsumerWidget {
                 Text(
                   done ? 'Challenge complete! +30 XP 🎉' : '+30 XP reward',
                   style: AppTypography.caption.copyWith(
-                    color: done ? AppColors.success : AppColors.textTertiary,
+                    color: done ? colors.success : colors.textTertiary,
                   ),
                 ),
               ],
@@ -654,7 +666,7 @@ class _DailyChallengeCard extends ConsumerWidget {
               Text(
                 '${proteinConsumed.toStringAsFixed(0)}/${proteinTarget.toStringAsFixed(0)}g',
                 style: AppTypography.caption.copyWith(
-                  color: done ? AppColors.success : AppColors.warning,
+                  color: done ? colors.success : colors.warning,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -665,9 +677,9 @@ class _DailyChallengeCard extends ConsumerWidget {
                 child: CircularProgressIndicator(
                   value: progress,
                   strokeWidth: 3,
-                  backgroundColor: AppColors.surfaceCardBorder,
+                  backgroundColor: colors.surfaceCardBorder,
                   valueColor: AlwaysStoppedAnimation(
-                    done ? AppColors.success : AppColors.warning,
+                    done ? colors.success : colors.warning,
                   ),
                 ),
               ),
@@ -718,9 +730,9 @@ class _AiInsightCardState extends ConsumerState<_AiInsightCard> {
 
     setState(() => _loading = true);
     try {
-      final gemini = ref.read(geminiClientProvider);
+      final ai = ref.read(aiProvider);
       final nutrition = ref.read(dailyNutritionProvider);
-      final result = await gemini.getDailyInsight(
+      final result = await ai.getDailyInsight(
         userContext: {
           'meals_today': meals.length,
           'calories': nutrition.consumedCalories.toStringAsFixed(0),
@@ -772,13 +784,14 @@ class _AiInsightCardState extends ConsumerState<_AiInsightCard> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final displayText =
         _insightText ??
         'Welcome! Log your first meal to get personalized AI insights about your nutrition.';
 
     return AppCard(
-      backgroundColor: AppColors.infoBg,
-      borderColor: AppColors.info.withValues(alpha: 0.3),
+      backgroundColor: colors.infoBg,
+      borderColor: colors.info.withValues(alpha: 0.3),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -786,17 +799,17 @@ class _AiInsightCardState extends ConsumerState<_AiInsightCard> {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: AppColors.info.withValues(alpha: 0.15),
+              color: colors.info.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
             child: Center(
               child: _loading
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: AppColors.info,
+                        color: colors.info,
                       ),
                     )
                   : Text(_icon, style: const TextStyle(fontSize: 18)),
@@ -809,13 +822,13 @@ class _AiInsightCardState extends ConsumerState<_AiInsightCard> {
               children: [
                 Text(
                   'AI INSIGHT',
-                  style: AppTypography.overline.copyWith(color: AppColors.info),
+                  style: AppTypography.overline.copyWith(color: colors.info),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   displayText,
                   style: AppTypography.body.copyWith(
-                    color: AppColors.textSecondary,
+                    color: colors.textSecondary,
                     height: 1.5,
                   ),
                 ),
@@ -825,10 +838,10 @@ class _AiInsightCardState extends ConsumerState<_AiInsightCard> {
           if (_generated)
             GestureDetector(
               onTap: _dismiss,
-              child: const Icon(
+              child: Icon(
                 Icons.close,
                 size: 16,
-                color: AppColors.textTertiary,
+                color: colors.textTertiary,
               ),
             ),
         ],
@@ -842,6 +855,7 @@ class _MealTimelineCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colors = context.colors;
     final mealsAsync = ref.watch(todaysMealsProvider);
     final meals = mealsAsync.valueOrNull ?? [];
 
@@ -855,7 +869,7 @@ class _MealTimelineCard extends ConsumerWidget {
               Text(
                 'TODAY\'S MEALS',
                 style: AppTypography.overline.copyWith(
-                  color: AppColors.textTertiary,
+                  color: colors.textTertiary,
                 ),
               ),
               GestureDetector(
@@ -863,7 +877,7 @@ class _MealTimelineCard extends ConsumerWidget {
                 child: Text(
                   '+ Log Meal',
                   style: AppTypography.caption.copyWith(
-                    color: AppColors.lime,
+                    color: colors.lime,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -883,14 +897,14 @@ class _MealTimelineCard extends ConsumerWidget {
                     Text(
                       'No meals logged yet',
                       style: AppTypography.bodyMedium.copyWith(
-                        color: AppColors.textTertiary,
+                        color: colors.textTertiary,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Log breakfast to earn 15 XP ⚡',
                       style: AppTypography.caption.copyWith(
-                        color: AppColors.textTertiary,
+                        color: colors.textTertiary,
                       ),
                     ),
                   ],
@@ -904,7 +918,7 @@ class _MealTimelineCard extends ConsumerWidget {
                 child: Row(
                   children: [
                     Text(
-                      _mealEmoji(meal.mealType),
+                      mealEmoji(meal.mealType),
                       style: const TextStyle(fontSize: 18),
                     ),
                     const SizedBox(width: AppSpacing.sm),
@@ -923,7 +937,7 @@ class _MealTimelineCard extends ConsumerWidget {
                           Text(
                             'P${meal.proteinG.toStringAsFixed(0)}g · C${meal.carbsG.toStringAsFixed(0)}g · F${meal.fatG.toStringAsFixed(0)}g',
                             style: AppTypography.caption.copyWith(
-                              color: AppColors.textTertiary,
+                              color: colors.textTertiary,
                             ),
                           ),
                         ],
@@ -933,7 +947,7 @@ class _MealTimelineCard extends ConsumerWidget {
                       '${meal.calories.toStringAsFixed(0)} kcal',
                       style: AppTypography.bodyMedium.copyWith(
                         fontWeight: FontWeight.w700,
-                        color: AppColors.warning,
+                        color: colors.warning,
                       ),
                     ),
                   ],
@@ -945,33 +959,22 @@ class _MealTimelineCard extends ConsumerWidget {
     );
   }
 
-  String _mealEmoji(String type) {
-    switch (type.toLowerCase()) {
-      case 'breakfast':
-        return '🌅';
-      case 'lunch':
-        return '☀️';
-      case 'dinner':
-        return '🌙';
-      default:
-        return '🍎';
-    }
-  }
 }
 
 class _QuickLogFab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colors = context.colors;
     return FloatingActionButton.extended(
       onPressed: () => _showQuickLog(context),
-      backgroundColor: AppColors.lime,
-      foregroundColor: AppColors.textInverse,
+      backgroundColor: colors.lime,
+      foregroundColor: colors.textInverse,
       icon: const Icon(Icons.add_rounded, size: 22),
       label: Text(
         'Log',
         style: AppTypography.bodyMedium.copyWith(
           fontWeight: FontWeight.w700,
-          color: AppColors.textInverse,
+          color: colors.textInverse,
         ),
       ),
       elevation: 0,
@@ -994,38 +997,39 @@ class _QuickLogSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colors = context.colors;
     final actions = [
       (
         '📸',
         'Scan Meal',
         'AI photo analysis',
-        AppColors.lime,
+        colors.lime,
         '/nutrition/log',
       ),
       (
         '✏️',
         'Log Meal',
         'Text or manual entry',
-        AppColors.cyan,
+        colors.cyan,
         '/nutrition/log',
       ),
       (
         '💪',
         'Log Workout',
         'Start or log a session',
-        AppColors.coral,
+        colors.coral,
         '/workouts/active',
       ),
-      ('💧', 'Log Water', '+250ml · +5 XP', AppColors.info, null),
+      ('💧', 'Log Water', '+250ml · +5 XP', colors.info, null),
     ];
 
     return Container(
       margin: const EdgeInsets.all(AppSpacing.lg),
       padding: const EdgeInsets.all(AppSpacing.cardPadding),
       decoration: BoxDecoration(
-        color: AppColors.bgSecondary,
+        color: colors.bgSecondary,
         borderRadius: BorderRadius.circular(AppRadius.xl),
-        border: Border.all(color: AppColors.surfaceCardBorder),
+        border: Border.all(color: colors.surfaceCardBorder),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1038,7 +1042,7 @@ class _QuickLogSheet extends ConsumerWidget {
               height: 4,
               margin: const EdgeInsets.only(bottom: 20),
               decoration: BoxDecoration(
-                color: AppColors.surfaceCardBorder,
+                color: colors.surfaceCardBorder,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -1048,7 +1052,7 @@ class _QuickLogSheet extends ConsumerWidget {
           Text(
             'What do you want to track?',
             style: AppTypography.caption.copyWith(
-              color: AppColors.textTertiary,
+              color: colors.textTertiary,
             ),
           ),
           const SizedBox(height: AppSpacing.sectionGap),
@@ -1119,7 +1123,7 @@ class _QuickLogSheet extends ConsumerWidget {
                                           e.value.$3,
                                           style: AppTypography.overline
                                               .copyWith(
-                                                color: AppColors.textTertiary,
+                                                color: colors.textTertiary,
                                                 fontSize: 9,
                                               ),
                                         ),

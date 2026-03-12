@@ -2,9 +2,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/theme_extensions.dart';
 import '../../../services/auth_service.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -89,7 +89,7 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
+      backgroundColor: context.colors.bgPrimary,
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
@@ -113,7 +113,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 const SizedBox(height: AppSpacing.sm),
                 Text(
                   'Start your fitness transformation today',
-                  style: AppTypography.body.copyWith(color: AppColors.textTertiary),
+                  style: AppTypography.body.copyWith(color: context.colors.textTertiary),
                 ).animate().fadeIn(delay: 100.ms),
 
                 const SizedBox(height: AppSpacing.xxxl),
@@ -164,7 +164,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       icon: Icon(
                         _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
                         size: 20,
-                        color: AppColors.textTertiary,
+                        color: context.colors.textTertiary,
                       ),
                       onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                     ),
@@ -202,12 +202,12 @@ class _SignupScreenState extends State<SignupScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(AppSpacing.md),
                       decoration: BoxDecoration(
-                        color: AppColors.errorBg,
+                        color: context.colors.errorBg,
                         borderRadius: BorderRadius.circular(AppRadius.md),
                       ),
                       child: Text(
                         _errorMessage!,
-                        style: AppTypography.caption.copyWith(color: AppColors.error),
+                        style: AppTypography.caption.copyWith(color: context.colors.error),
                       ),
                     ),
                   ),
@@ -219,10 +219,10 @@ class _SignupScreenState extends State<SignupScreen> {
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _signUp,
                     child: _isLoading
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 24,
                             height: 24,
-                            child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.textInverse),
+                            child: CircularProgressIndicator(strokeWidth: 2.5, color: context.colors.textInverse),
                           )
                         : const Text('Create Account'),
                   ),
@@ -233,12 +233,12 @@ class _SignupScreenState extends State<SignupScreen> {
                 // Divider
                 Row(
                   children: [
-                    const Expanded(child: Divider(color: AppColors.surfaceCardBorder)),
+                    Expanded(child: Divider(color: context.colors.surfaceCardBorder)),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                      child: Text('or', style: AppTypography.caption.copyWith(color: AppColors.textTertiary)),
+                      child: Text('or', style: AppTypography.caption.copyWith(color: context.colors.textTertiary)),
                     ),
-                    const Expanded(child: Divider(color: AppColors.surfaceCardBorder)),
+                    Expanded(child: Divider(color: context.colors.surfaceCardBorder)),
                   ],
                 ),
 
@@ -253,10 +253,10 @@ class _SignupScreenState extends State<SignupScreen> {
                     icon: const Text('G', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white)),
                     label: Text(
                       'Sign up with Google',
-                      style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
+                      style: AppTypography.bodyMedium.copyWith(color: context.colors.textSecondary),
                     ),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppColors.surfaceCardBorder),
+                      side: BorderSide(color: context.colors.surfaceCardBorder),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(AppRadius.lg),
                       ),
@@ -272,14 +272,14 @@ class _SignupScreenState extends State<SignupScreen> {
                   children: [
                     Text(
                       'Already have an account? ',
-                      style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+                      style: AppTypography.caption.copyWith(color: context.colors.textTertiary),
                     ),
                     GestureDetector(
                       onTap: () => context.pop(),
                       child: Text(
                         'Sign In',
                         style: AppTypography.caption.copyWith(
-                          color: AppColors.lime,
+                          color: context.colors.lime,
                           fontWeight: FontWeight.w700,
                         ),
                       ),

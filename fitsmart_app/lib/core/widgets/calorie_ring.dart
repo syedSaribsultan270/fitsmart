@@ -1,8 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
+import '../theme/theme_extensions.dart';
 
 class CalorieRing extends StatelessWidget {
   final double consumed;
@@ -20,13 +20,14 @@ class CalorieRing extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final progress = (target > 0 ? consumed / target : 0).clamp(0.0, 1.2);
     final isOver = consumed > target;
     final ringColor = isOver
-        ? AppColors.error
+        ? c.error
         : progress > 0.85
-            ? AppColors.warning
-            : AppColors.lime;
+            ? c.warning
+            : c.lime;
 
     return SizedBox(
       width: size,
@@ -39,7 +40,7 @@ class CalorieRing extends StatelessWidget {
             size: Size(size, size),
             painter: _RingPainter(
               progress: 1.0,
-              color: AppColors.surfaceCardBorder,
+              color: c.surfaceCardBorder,
               strokeWidth: strokeWidth,
             ),
           ),
@@ -78,7 +79,7 @@ class CalorieRing extends StatelessWidget {
               Text(
                 consumed.toStringAsFixed(0),
                 style: AppTypography.h1.copyWith(
-                  color: AppColors.textPrimary,
+                  color: c.textPrimary,
                   fontSize: 36,
                   fontWeight: FontWeight.w800,
                 ),
@@ -86,20 +87,20 @@ class CalorieRing extends StatelessWidget {
               Text(
                 'of ${target.toStringAsFixed(0)}',
                 style: AppTypography.caption.copyWith(
-                  color: AppColors.textSecondary,
+                  color: c.textSecondary,
                 ),
               ),
               Text(
                 'kcal',
                 style: AppTypography.overline.copyWith(
-                  color: AppColors.textTertiary,
+                  color: c.textTertiary,
                 ),
               ),
               if (isOver)
                 Text(
                   '+${(consumed - target).toStringAsFixed(0)} over',
                   style: AppTypography.caption.copyWith(
-                    color: AppColors.error,
+                    color: c.error,
                     fontWeight: FontWeight.w600,
                   ),
                 ),

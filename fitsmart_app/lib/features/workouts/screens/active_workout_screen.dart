@@ -5,9 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../../../core/theme/app_colors.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/theme_extensions.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../data/database/app_database.dart';
 import '../../../data/database/database_provider.dart';
@@ -34,12 +35,21 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
   Timer? _restTimer;
   bool _isSaving = false;
 
-  late final List<_Exercise> _exercises;
-  late final String _workoutName;
+  late List<_Exercise> _exercises;
+  late String _workoutName;
+
+  static const _recoveryKey = 'active_workout_recovery';
 
   @override
   void initState() {
     super.initState();
+    _initWorkout();
+  }
+
+  Future<void> _initWorkout() async {
+    // Check for crashed/unfinished workout
+    final recovered = await _tryRecover();
+    if (recovered) return;
 
     // Parse workout data passed via route extra, fall back to defaults
     if (widget.workoutId != null) {
@@ -65,10 +75,136 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
       _exercises = _defaultExercises();
     }
 
+    _startTimer();
+  }
+
+  void _startTimer() {
     _stopwatch.start();
     _timer =
         Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}));
   }
+
+  /// Try to recover an unfinished workout from SharedPreferences.
+  /// Returns true if recovery dialog was shown.
+  Future<bool> _tryRecover() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final json = prefs.getString(_recoveryKey);
+      if (json == null) return false;
+
+      final data = jsonDecode(json) as Map<String, dynamic>;
+      final savedAt = DateTime.tryParse(data['savedAt'] as String? ?? '');
+      // Only recover if saved within the last 6 hours
+      if (savedAt == null ||
+          DateTime.now().difference(savedAt).inHours > 6) {
+        await prefs.remove(_recoveryKey);
+        return false;
+      }
+
+      if (!mounted) return false;
+
+      final resume = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Resume Workout?'),
+          content: Text(
+            'You have an unfinished "${data['name']}" workout. Resume where you left off?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(ctx, false);
+              },
+              child: const Text('Discard'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Resume'),
+            ),
+          ],
+        ),
+      );
+
+      if (resume == true) {
+        _restoreFromJson(data);
+        _startTimer();
+        return true;
+      } else {
+        await prefs.remove(_recoveryKey);
+        // Initialize normally
+        return false;
+      }
+    } catch (e) {
+      debugPrint('[Workout] recovery failed: $e');
+      return false;
+    }
+  }
+
+  void _restoreFromJson(Map<String, dynamic> data) {
+    _workoutName = data['name'] as String? ?? 'Workout';
+    _currentExercise = data['currentExercise'] as int? ?? 0;
+    final elapsed = data['elapsedSeconds'] as int? ?? 0;
+
+    final exercisesList = data['exercises'] as List? ?? [];
+    _exercises = exercisesList.map((e) {
+      final setsData = e['sets'] as List? ?? [];
+      return _Exercise(
+        e['name'] as String? ?? 'Exercise',
+        e['targetSets'] as int? ?? 3,
+        setsData
+            .map((s) => _Set(
+                  (s['weight'] as num?)?.toDouble() ?? 0,
+                  s['reps'] as int? ?? 0,
+                  isLogged: s['isLogged'] as bool? ?? false,
+                ))
+            .toList(),
+        e['restSeconds'] as int? ?? 60,
+      );
+    }).toList();
+
+    // Restore elapsed time
+    _stopwatch.reset();
+    _stopwatch.start();
+    // We can't set Stopwatch directly, but we track the offset
+    _elapsedOffset = Duration(seconds: elapsed);
+    if (mounted) setState(() {});
+  }
+
+  Duration _elapsedOffset = Duration.zero;
+
+  /// Persist current workout state to SharedPreferences.
+  Future<void> _persistState() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final data = {
+        'name': _workoutName,
+        'currentExercise': _currentExercise,
+        'elapsedSeconds': (_stopwatch.elapsed + _elapsedOffset).inSeconds,
+        'savedAt': DateTime.now().toIso8601String(),
+        'exercises': _exercises.map((ex) => {
+          'name': ex.name,
+          'targetSets': ex.targetSets,
+          'restSeconds': ex.restSeconds,
+          'sets': ex.sets.map((s) => {
+            'weight': s.weight,
+            'reps': s.reps,
+            'isLogged': s.isLogged,
+          }).toList(),
+        }).toList(),
+      };
+      await prefs.setString(_recoveryKey, jsonEncode(data));
+    } catch (e) {
+      debugPrint('[Workout] persist state failed: $e');
+    }
+  }
+
+  /// Clear persisted workout state (after save or discard).
+  static Future<void> clearRecoveryState() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_recoveryKey);
+  }
+
 
   static List<_Exercise> _defaultExercises() => [
         _Exercise('Bench Press', 4,
@@ -91,8 +227,10 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     super.dispose();
   }
 
+  Duration get _totalElapsed => _stopwatch.elapsed + _elapsedOffset;
+
   String get _elapsedTime {
-    final e = _stopwatch.elapsed;
+    final e = _totalElapsed;
     final m = e.inMinutes.toString().padLeft(2, '0');
     final s = (e.inSeconds % 60).toString().padLeft(2, '0');
     return '$m:$s';
@@ -122,6 +260,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     });
     HapticFeedback.mediumImpact();
     _startRestTimer(_exercises[exerciseIdx].restSeconds);
+    _persistState(); // crash recovery
   }
 
   int get _totalLoggedSets {
@@ -155,7 +294,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
       }
     }
     // Add ~3 kcal/min for base metabolic during workout
-    cal += _stopwatch.elapsed.inMinutes * 3;
+    cal += _totalElapsed.inMinutes * 3;
     return cal;
   }
 
@@ -165,7 +304,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
 
     try {
       final db = ref.read(databaseProvider);
-      final duration = _stopwatch.elapsed.inSeconds;
+      final duration = _totalElapsed.inSeconds;
       final totalSets = _totalLoggedSets;
       final totalReps = _totalLoggedReps;
       final estCal = _estimatedCalories;
@@ -226,7 +365,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
           'totalReps': totalReps,
           'estimatedCalories': estCal,
           'completedAt': now.toIso8601String(),
-        }).catchError((_) => '');
+        }).catchError((e) { debugPrint('[Firestore] workout sync failed: $e'); return ''; });
       }
 
       // Award XP
@@ -237,6 +376,8 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
 
       ref.invalidate(personalRecordsProvider);
       ref.invalidate(allTimeStatsProvider);
+
+      await clearRecoveryState();
 
       if (mounted) {
         SnackbarService.success(
@@ -253,13 +394,14 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final exercise = _exercises[_currentExercise];
     final progress = (_currentExercise) / _exercises.length;
 
     return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
+      backgroundColor: colors.bgPrimary,
       appBar: AppBar(
-        backgroundColor: AppColors.bgPrimary,
+        backgroundColor: colors.bgPrimary,
         leading: IconButton(
           icon: const Icon(Icons.close_rounded),
           onPressed: () => _showFinishDialog(context),
@@ -269,7 +411,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
             Text(
               _elapsedTime,
               style: AppTypography.mono.copyWith(
-                color: AppColors.lime,
+                color: colors.lime,
                 fontWeight: FontWeight.w700,
                 fontSize: 16,
               ),
@@ -284,7 +426,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
             child: Text(
               'Finish',
               style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.lime,
+                color: colors.lime,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -296,8 +438,8 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
           // Progress bar
           LinearProgressIndicator(
             value: progress,
-            backgroundColor: AppColors.surfaceCardBorder,
-            valueColor: const AlwaysStoppedAnimation(AppColors.lime),
+            backgroundColor: colors.surfaceCardBorder,
+            valueColor: AlwaysStoppedAnimation(colors.lime),
             minHeight: 3,
           ),
           Expanded(
@@ -328,7 +470,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                             Text(
                               'Exercise ${_currentExercise + 1} of ${_exercises.length}',
                               style: AppTypography.overline
-                                  .copyWith(color: AppColors.textTertiary),
+                                  .copyWith(color: colors.textTertiary),
                             ),
                             Text(
                               exercise.name,
@@ -338,7 +480,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                             Text(
                               '${exercise.targetSets} sets · ${exercise.restSeconds}s rest',
                               style: AppTypography.body
-                                  .copyWith(color: AppColors.textSecondary),
+                                  .copyWith(color: colors.textSecondary),
                             ),
                           ],
                         ),
@@ -352,7 +494,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                               icon: const Icon(
                                   Icons.arrow_back_ios_new_rounded,
                                   size: 18),
-                              color: AppColors.textTertiary,
+                              color: colors.textTertiary,
                             ),
                           if (_currentExercise < _exercises.length - 1)
                             IconButton(
@@ -361,7 +503,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                               icon: const Icon(
                                   Icons.arrow_forward_ios_rounded,
                                   size: 18),
-                              color: AppColors.textTertiary,
+                              color: colors.textTertiary,
                             ),
                         ],
                       ),
@@ -373,7 +515,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                   Text(
                     'SETS',
                     style: AppTypography.overline
-                        .copyWith(color: AppColors.textTertiary),
+                        .copyWith(color: colors.textTertiary),
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   Padding(
@@ -407,14 +549,14 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
 
                   // Workout plan overview
                   AppCard(
-                    backgroundColor: AppColors.bgSecondary,
+                    backgroundColor: colors.bgSecondary,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           'WORKOUT PLAN',
                           style: AppTypography.overline
-                              .copyWith(color: AppColors.textTertiary),
+                              .copyWith(color: colors.textTertiary),
                         ),
                         const SizedBox(height: AppSpacing.md),
                         ..._exercises.asMap().entries.map((e) {
@@ -433,24 +575,24 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                                     height: 24,
                                     decoration: BoxDecoration(
                                       color: isDone
-                                          ? AppColors.success
+                                          ? colors.success
                                           : isCurrent
-                                              ? AppColors.lime
-                                              : AppColors.surfaceCardBorder,
+                                              ? colors.lime
+                                              : colors.surfaceCardBorder,
                                       shape: BoxShape.circle,
                                     ),
                                     child: Center(
                                       child: isDone
-                                          ? const Icon(Icons.check_rounded,
+                                          ? Icon(Icons.check_rounded,
                                               size: 14,
-                                              color: AppColors.textInverse)
+                                              color: colors.textInverse)
                                           : Text(
                                               '${e.key + 1}',
                                               style: AppTypography.overline
                                                   .copyWith(
                                                 color: isCurrent
-                                                    ? AppColors.textInverse
-                                                    : AppColors.textTertiary,
+                                                    ? colors.textInverse
+                                                    : colors.textTertiary,
                                                 fontWeight: FontWeight.w800,
                                               ),
                                             ),
@@ -461,10 +603,10 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                                     e.value.name,
                                     style: AppTypography.body.copyWith(
                                       color: isCurrent
-                                          ? AppColors.textPrimary
+                                          ? colors.textPrimary
                                           : isDone
-                                              ? AppColors.textTertiary
-                                              : AppColors.textSecondary,
+                                              ? colors.textTertiary
+                                              : colors.textSecondary,
                                       fontWeight: isCurrent
                                           ? FontWeight.w700
                                           : FontWeight.w400,
@@ -492,6 +634,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
   }
 
   void _showFinishDialog(BuildContext context) {
+    final colors = context.colors;
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -500,7 +643,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
           'Time: $_elapsedTime · $_totalLoggedSets sets logged\n'
           'Est. ${_estimatedCalories.toStringAsFixed(0)} kcal burned',
           style:
-              AppTypography.body.copyWith(color: AppColors.textSecondary),
+              AppTypography.body.copyWith(color: colors.textSecondary),
         ),
         actions: [
           TextButton(
@@ -535,12 +678,13 @@ class _RestTimerBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       padding: const EdgeInsets.all(AppSpacing.cardPadding),
       decoration: BoxDecoration(
-        color: AppColors.cyan.withValues(alpha: 0.1),
+        color: colors.cyan.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.cyan.withValues(alpha: 0.4)),
+        border: Border.all(color: colors.cyan.withValues(alpha: 0.4)),
       ),
       child: Row(
         children: [
@@ -553,12 +697,12 @@ class _RestTimerBanner extends StatelessWidget {
                 Text(
                   'REST TIME',
                   style: AppTypography.overline
-                      .copyWith(color: AppColors.cyan),
+                      .copyWith(color: colors.cyan),
                 ),
                 Text(
                   '${secondsLeft}s remaining',
                   style: AppTypography.h3.copyWith(
-                    color: AppColors.cyan,
+                    color: colors.cyan,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -570,7 +714,7 @@ class _RestTimerBanner extends StatelessWidget {
             child: Text(
               'Skip',
               style: AppTypography.bodyMedium
-                  .copyWith(color: AppColors.textTertiary),
+                  .copyWith(color: colors.textTertiary),
             ),
           ),
         ],
@@ -618,19 +762,20 @@ class _SetRowState extends State<_SetRow> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
           color: widget.set.isLogged
-              ? AppColors.success.withValues(alpha: 0.08)
-              : AppColors.surfaceCard,
+              ? colors.success.withValues(alpha: 0.08)
+              : colors.surfaceCard,
           borderRadius: BorderRadius.circular(AppRadius.md),
           border: Border.all(
             color: widget.set.isLogged
-                ? AppColors.success.withValues(alpha: 0.3)
-                : AppColors.surfaceCardBorder,
+                ? colors.success.withValues(alpha: 0.3)
+                : colors.surfaceCardBorder,
           ),
         ),
         child: Row(
@@ -640,19 +785,19 @@ class _SetRowState extends State<_SetRow> {
               height: 28,
               decoration: BoxDecoration(
                 color: widget.set.isLogged
-                    ? AppColors.success
-                    : AppColors.bgTertiary,
+                    ? colors.success
+                    : colors.bgTertiary,
                 shape: BoxShape.circle,
               ),
               child: Center(
                 child: widget.set.isLogged
-                    ? const Icon(Icons.check_rounded,
-                        size: 14, color: AppColors.textInverse)
+                    ? Icon(Icons.check_rounded,
+                        size: 14, color: colors.textInverse)
                     : Text(
                         '${widget.setNumber}',
                         style: AppTypography.caption.copyWith(
                           fontWeight: FontWeight.w700,
-                          color: AppColors.textTertiary,
+                          color: colors.textTertiary,
                         ),
                       ),
               ),
@@ -700,18 +845,18 @@ class _SetRowState extends State<_SetRow> {
                 height: 40,
                 decoration: BoxDecoration(
                   color: widget.set.isLogged
-                      ? AppColors.success.withValues(alpha: 0.1)
-                      : AppColors.lime,
+                      ? colors.success.withValues(alpha: 0.1)
+                      : colors.lime,
                   borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
                 child: Center(
                   child: widget.set.isLogged
-                      ? const Icon(Icons.check_rounded,
-                          color: AppColors.success, size: 18)
+                      ? Icon(Icons.check_rounded,
+                          color: colors.success, size: 18)
                       : Text(
                           'LOG',
                           style: AppTypography.overline.copyWith(
-                            color: AppColors.textInverse,
+                            color: colors.textInverse,
                             fontWeight: FontWeight.w800,
                           ),
                         ),

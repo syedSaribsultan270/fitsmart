@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/onboarding_provider.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_colors_extension.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/theme_extensions.dart';
 import '../../../core/widgets/app_button.dart';
 import 'onboarding_flow.dart';
 
@@ -37,18 +38,18 @@ class _StepSleepState extends ConsumerState<StepSleep> {
 
   String get _sleepQuality {
     final h = _sleepMinutes / 60;
-    if (h >= 8) return 'Optimal for recovery 💪';
-    if (h >= 7) return 'Good for most adults ✅';
-    if (h >= 6) return 'Slightly below ideal 😴';
-    return 'Not enough — gains suffer! 😬';
+    if (h >= 8) return 'Optimal for recovery \uD83D\uDCAA';
+    if (h >= 7) return 'Good for most adults \u2705';
+    if (h >= 6) return 'Slightly below ideal \uD83D\uDE34';
+    return 'Not enough \u2014 gains suffer! \uD83D\uDE2C';
   }
 
-  Color get _qualityColor {
+  Color _qualityColor(BuildContext context) {
     final h = _sleepMinutes / 60;
-    if (h >= 8) return AppColors.success;
-    if (h >= 7) return AppColors.lime;
-    if (h >= 6) return AppColors.warning;
-    return AppColors.error;
+    if (h >= 8) return context.colors.success;
+    if (h >= 7) return context.colors.lime;
+    if (h >= 6) return context.colors.warning;
+    return context.colors.error;
   }
 
   String _formatTime(int hour, int min) {
@@ -60,8 +61,10 @@ class _StepSleepState extends ConsumerState<StepSleep> {
 
   @override
   Widget build(BuildContext context) {
+    final qColor = _qualityColor(context);
+
     return OnboardingStepBase(
-      emoji: '🌙',
+      emoji: '\uD83C\uDF19',
       title: 'Your Rest\nSchedule',
       subtitle: 'Sleep = gains. Seriously. Let\'s set your targets.',
       content: Column(
@@ -69,11 +72,11 @@ class _StepSleepState extends ConsumerState<StepSleep> {
           // Bedtime
           _TimeSelector(
             label: 'BEDTIME',
-            emoji: '🌙',
+            emoji: '\uD83C\uDF19',
             time: _formatTime(_bedHour, _bedMin),
             hour: _bedHour,
             minute: _bedMin,
-            color: AppColors.macroFiber,
+            color: AppColorsExtension.macroFiber,
             onChanged: (h, m) => setState(() {
               _bedHour = h;
               _bedMin = m;
@@ -84,11 +87,11 @@ class _StepSleepState extends ConsumerState<StepSleep> {
           // Wake time
           _TimeSelector(
             label: 'WAKE TIME',
-            emoji: '☀️',
+            emoji: '\u2600\uFE0F',
             time: _formatTime(_wakeHour, _wakeMin),
             hour: _wakeHour,
             minute: _wakeMin,
-            color: AppColors.warning,
+            color: context.colors.warning,
             onChanged: (h, m) => setState(() {
               _wakeHour = h;
               _wakeMin = m;
@@ -100,10 +103,10 @@ class _StepSleepState extends ConsumerState<StepSleep> {
           Container(
             padding: const EdgeInsets.all(AppSpacing.cardPadding),
             decoration: BoxDecoration(
-              color: _qualityColor.withValues(alpha: 0.08),
+              color: qColor.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(AppRadius.lg),
               border: Border.all(
-                color: _qualityColor.withValues(alpha: 0.3),
+                color: qColor.withValues(alpha: 0.3),
               ),
             ),
             child: Row(
@@ -111,7 +114,7 @@ class _StepSleepState extends ConsumerState<StepSleep> {
                 Text(
                   _sleepDuration,
                   style: AppTypography.h2.copyWith(
-                    color: _qualityColor,
+                    color: qColor,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -120,7 +123,7 @@ class _StepSleepState extends ConsumerState<StepSleep> {
                   child: Text(
                     _sleepQuality,
                     style: AppTypography.bodyMedium.copyWith(
-                      color: _qualityColor,
+                      color: qColor,
                     ),
                   ),
                 ),
@@ -131,7 +134,7 @@ class _StepSleepState extends ConsumerState<StepSleep> {
           const SizedBox(height: AppSpacing.md),
           Text(
             'Sleep affects cortisol, muscle recovery, hunger hormones, and fat loss. This matters!',
-            style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+            style: AppTypography.caption.copyWith(color: context.colors.textTertiary),
           ),
         ],
       ),
@@ -170,13 +173,13 @@ class _TimeSelector extends StatelessWidget {
     final picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay(hour: hour, minute: minute),
-      builder: (context, child) {
+      builder: (pickerCtx, child) {
         return Theme(
-          data: Theme.of(context).copyWith(
+          data: Theme.of(pickerCtx).copyWith(
             timePickerTheme: TimePickerThemeData(
-              backgroundColor: AppColors.bgSecondary,
-              hourMinuteColor: AppColors.surfaceCard,
-              dialBackgroundColor: AppColors.bgTertiary,
+              backgroundColor: context.colors.bgSecondary,
+              hourMinuteColor: context.colors.surfaceCard,
+              dialBackgroundColor: context.colors.bgTertiary,
               dialHandColor: color,
             ),
           ),
@@ -197,9 +200,9 @@ class _TimeSelector extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.cardPadding),
         decoration: BoxDecoration(
-          color: AppColors.surfaceCard,
+          color: context.colors.surfaceCard,
           borderRadius: BorderRadius.circular(AppRadius.lg),
-          border: Border.all(color: AppColors.surfaceCardBorder),
+          border: Border.all(color: context.colors.surfaceCardBorder),
         ),
         child: Row(
           children: [
@@ -222,7 +225,7 @@ class _TimeSelector extends StatelessWidget {
                   Text(
                     label,
                     style: AppTypography.overline.copyWith(
-                      color: AppColors.textTertiary,
+                      color: context.colors.textTertiary,
                     ),
                   ),
                   Text(
@@ -235,7 +238,7 @@ class _TimeSelector extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(Icons.edit_rounded, color: AppColors.textTertiary, size: 18),
+            Icon(Icons.edit_rounded, color: context.colors.textTertiary, size: 18),
           ],
         ),
       ),

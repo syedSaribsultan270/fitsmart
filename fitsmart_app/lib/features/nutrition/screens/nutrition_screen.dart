@@ -4,11 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:drift/drift.dart' hide Column;
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../dashboard/providers/dashboard_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/theme_extensions.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/macro_bar.dart';
@@ -16,8 +16,9 @@ import '../../../core/widgets/skeleton_loader.dart';
 import '../../../data/database/app_database.dart';
 import '../../../data/database/database_provider.dart';
 import '../../../providers/gemini_provider.dart';
-import '../../../services/gemini_client.dart';
 import '../../../services/snackbar_service.dart';
+import '../../../services/user_context_service.dart';
+import '../../../core/utils/meal_utils.dart';
 
 class NutritionScreen extends ConsumerStatefulWidget {
   const NutritionScreen({super.key});
@@ -44,25 +45,26 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen>
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final nutrition = ref.watch(dailyNutritionProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
+      backgroundColor: colors.bgPrimary,
       appBar: AppBar(
         title: const Text('Nutrition'),
         actions: [
           IconButton(
             icon: const Icon(Icons.add_rounded),
-            color: AppColors.lime,
+            color: colors.lime,
             onPressed: () => context.push('/nutrition/log'),
           ),
         ],
         bottom: TabBar(
           controller: _tabs,
-          indicatorColor: AppColors.lime,
+          indicatorColor: colors.lime,
           indicatorWeight: 2,
-          labelColor: AppColors.lime,
-          unselectedLabelColor: AppColors.textTertiary,
+          labelColor: colors.lime,
+          unselectedLabelColor: colors.textTertiary,
           labelStyle: AppTypography.caption.copyWith(fontWeight: FontWeight.w700),
           tabs: const [
             Tab(text: 'TODAY'),
@@ -87,6 +89,7 @@ class _TodayTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colors = context.colors;
     final mealsAsync = ref.watch(todaysMealsProvider);
 
     // Loading state
@@ -125,7 +128,7 @@ class _TodayTab extends ConsumerWidget {
               Text(
                 'Pull down to retry',
                 style: AppTypography.caption.copyWith(
-                  color: AppColors.textTertiary,
+                  color: colors.textTertiary,
                 ),
               ),
             ],
@@ -150,12 +153,12 @@ class _TodayTab extends ConsumerWidget {
                 children: [
                   Text(
                     'TODAY\'S MACROS',
-                    style: AppTypography.overline.copyWith(color: AppColors.textTertiary),
+                    style: AppTypography.overline.copyWith(color: colors.textTertiary),
                   ),
                   Text(
                     '${nutrition.consumedCalories.toStringAsFixed(0)} / ${nutrition.targetCalories.toStringAsFixed(0)} kcal',
                     style: AppTypography.caption.copyWith(
-                      color: AppColors.lime,
+                      color: colors.lime,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -190,8 +193,8 @@ class _TodayTab extends ConsumerWidget {
         // Overall empty state CTA when no meals logged at all
         if (!hasAnyMeals) ...[
           AppCard(
-            backgroundColor: AppColors.limeGlow,
-            borderColor: AppColors.lime.withValues(alpha: 0.3),
+            backgroundColor: colors.limeGlow,
+            borderColor: colors.lime.withValues(alpha: 0.3),
             child: Column(
               children: [
                 const Text('🍽️', style: TextStyle(fontSize: 40)),
@@ -206,7 +209,7 @@ class _TodayTab extends ConsumerWidget {
                 Text(
                   'Log your first meal to start tracking macros and earn XP!',
                   style: AppTypography.caption.copyWith(
-                    color: AppColors.textTertiary,
+                    color: colors.textTertiary,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -245,6 +248,7 @@ class _MealSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colors = context.colors;
     final allMeals = ref.watch(todaysMealsProvider).valueOrNull ?? [];
     final meals = allMeals
         .where((m) => m.mealType.toLowerCase() == mealType.toLowerCase())
@@ -263,7 +267,7 @@ class _MealSection extends ConsumerWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(_mealEmoji(mealType),
+                    Text(mealEmoji(mealType),
                         style: const TextStyle(fontSize: 18)),
                     const SizedBox(width: AppSpacing.sm),
                     Flexible(
@@ -285,8 +289,8 @@ class _MealSection extends ConsumerWidget {
                         : '${totalCal.toStringAsFixed(0)} kcal',
                     style: AppTypography.caption.copyWith(
                       color: meals.isEmpty
-                          ? AppColors.textTertiary
-                          : AppColors.lime,
+                          ? colors.textTertiary
+                          : colors.lime,
                       fontWeight: meals.isEmpty
                           ? FontWeight.normal
                           : FontWeight.w700,
@@ -299,13 +303,13 @@ class _MealSection extends ConsumerWidget {
                       width: 28,
                       height: 28,
                       decoration: BoxDecoration(
-                        color: AppColors.limeGlow,
+                        color: colors.limeGlow,
                         shape: BoxShape.circle,
                         border: Border.all(
-                            color: AppColors.lime.withValues(alpha: 0.4)),
+                            color: colors.lime.withValues(alpha: 0.4)),
                       ),
-                      child: const Icon(Icons.add_rounded,
-                          size: 16, color: AppColors.lime),
+                      child: Icon(Icons.add_rounded,
+                          size: 16, color: colors.lime),
                     ),
                   ),
                 ],
@@ -318,7 +322,7 @@ class _MealSection extends ConsumerWidget {
               child: Text(
                 'Nothing logged yet',
                 style: AppTypography.caption
-                    .copyWith(color: AppColors.textTertiary),
+                    .copyWith(color: colors.textTertiary),
               ),
             )
           else ...[
@@ -330,11 +334,11 @@ class _MealSection extends ConsumerWidget {
                     alignment: Alignment.centerRight,
                     padding: const EdgeInsets.only(right: 16),
                     decoration: BoxDecoration(
-                      color: AppColors.error.withValues(alpha: 0.15),
+                      color: colors.error.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
-                    child: const Icon(Icons.delete_outline_rounded,
-                        color: AppColors.error),
+                    child: Icon(Icons.delete_outline_rounded,
+                        color: colors.error),
                   ),
                   onDismissed: (_) async {
                     final db = ref.read(databaseProvider);
@@ -349,7 +353,7 @@ class _MealSection extends ConsumerWidget {
                           child: Text(
                             m.name,
                             style: AppTypography.body
-                                .copyWith(color: AppColors.textSecondary),
+                                .copyWith(color: colors.textSecondary),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -357,7 +361,7 @@ class _MealSection extends ConsumerWidget {
                         Text(
                           '${m.calories.toStringAsFixed(0)} kcal · P${m.proteinG.toStringAsFixed(0)}g',
                           style: AppTypography.caption
-                              .copyWith(color: AppColors.textTertiary),
+                              .copyWith(color: colors.textTertiary),
                         ),
                       ],
                     ),
@@ -369,20 +373,6 @@ class _MealSection extends ConsumerWidget {
     );
   }
 
-  String _mealEmoji(String type) {
-    switch (type) {
-      case 'Breakfast':
-        return '🌅';
-      case 'Lunch':
-        return '☀️';
-      case 'Dinner':
-        return '🌙';
-      case 'Snack':
-        return '🍎';
-      default:
-        return '🍽️';
-    }
-  }
 }
 
 class _MealPlanTab extends ConsumerStatefulWidget {
@@ -393,34 +383,15 @@ class _MealPlanTab extends ConsumerStatefulWidget {
 class _MealPlanTabState extends ConsumerState<_MealPlanTab> {
   bool _isGenerating = false;
 
-  Future<Map<String, dynamic>> _buildUserContext() async {
-    final targets = ref.read(nutritionTargetsProvider);
-    Map<String, dynamic> profile = {};
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonStr = prefs.getString('onboarding_data');
-      if (jsonStr != null) {
-        profile = jsonDecode(jsonStr) as Map<String, dynamic>;
-      }
-    } catch (_) {}
-    return {
-      'goal': profile['primaryGoal'] ?? 'general_fitness',
-      'target_calories': targets.calories.round(),
-      'target_protein_g': targets.proteinG.round(),
-      'target_carbs_g': targets.carbsG.round(),
-      'target_fat_g': targets.fatG.round(),
-      'dietary_restrictions': profile['dietaryRestrictions'] ?? [],
-      'cuisine_preferences': profile['cuisinePreferences'] ?? [],
-      'disliked_ingredients': profile['dislikedIngredients'] ?? [],
-    };
-  }
+  Future<Map<String, dynamic>> _buildUserContext() =>
+      UserContextService.buildMealPlanContext(ref);
 
   Future<void> _generatePlan() async {
     setState(() => _isGenerating = true);
     try {
-      final gemini = ref.read(geminiClientProvider);
+      final ai = ref.read(aiProvider);
       final ctx = await _buildUserContext();
-      final result = await gemini.generateMealPlan(
+      final result = await ai.generateMealPlan(
         userContext: ctx,
         days: 7,
       );
@@ -442,37 +413,34 @@ class _MealPlanTabState extends ConsumerState<_MealPlanTab> {
         setState(() => _isGenerating = false);
         SnackbarService.success('Meal plan generated! 🍽️');
       }
-    } on GeminiException catch (e) {
-      if (mounted) {
-        setState(() => _isGenerating = false);
-        SnackbarService.error(e.message);
-      }
     } catch (e) {
+      debugPrint('Meal plan error: $e');
       if (mounted) {
         setState(() => _isGenerating = false);
-        SnackbarService.error('Failed to generate plan: $e');
+        SnackbarService.error('Could not generate plan. Please try again.');
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final plansAsync = ref.watch(
       mealPlansProvider,
     );
     if (plansAsync.isLoading && !plansAsync.hasValue) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.lime));
+      return Center(child: CircularProgressIndicator(color: colors.lime));
     }
     if (plansAsync.hasError && !plansAsync.hasValue) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Couldn\'t load meal plans', style: AppTypography.body.copyWith(color: AppColors.textTertiary)),
+            Text('Couldn\'t load meal plans', style: AppTypography.body.copyWith(color: colors.textTertiary)),
             const SizedBox(height: AppSpacing.sm),
             TextButton(
               onPressed: () => ref.invalidate(mealPlansProvider),
-              child: Text('Retry', style: AppTypography.bodyMedium.copyWith(color: AppColors.lime)),
+              child: Text('Retry', style: AppTypography.bodyMedium.copyWith(color: colors.lime)),
             ),
           ],
         ),
@@ -497,7 +465,7 @@ class _MealPlanTabState extends ConsumerState<_MealPlanTab> {
             Text(
               'Get a personalized 7-day meal plan built around your goals, dietary preferences, and budget.',
               style: AppTypography.body
-                  .copyWith(color: AppColors.textSecondary),
+                  .copyWith(color: colors.textSecondary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.sectionGap),
@@ -527,6 +495,7 @@ class _MealPlanView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final activePlan = plans.firstWhere(
       (p) => p.isActive,
       orElse: () => plans.first,
@@ -534,7 +503,7 @@ class _MealPlanView extends StatelessWidget {
     Map<String, dynamic> planData = {};
     try {
       planData = jsonDecode(activePlan.planJson) as Map<String, dynamic>;
-    } catch (_) {}
+    } catch (e) { debugPrint('[Nutrition] parse meal plan JSON failed: $e'); }
     final days = planData['days'] as List? ?? [];
 
     return ListView(
@@ -552,7 +521,7 @@ class _MealPlanView extends StatelessWidget {
               onPressed: isGenerating ? null : onGenerate,
               icon: const Icon(Icons.refresh_rounded, size: 16),
               label: Text(isGenerating ? 'Generating...' : 'Regenerate'),
-              style: TextButton.styleFrom(foregroundColor: AppColors.lime),
+              style: TextButton.styleFrom(foregroundColor: colors.lime),
             ),
           ],
         ),
@@ -573,12 +542,12 @@ class _MealPlanView extends StatelessWidget {
                       Text(
                         'Day ${day['day']}',
                         style: AppTypography.bodyMedium
-                            .copyWith(fontWeight: FontWeight.w700, color: AppColors.cyan),
+                            .copyWith(fontWeight: FontWeight.w700, color: colors.cyan),
                       ),
                       Text(
                         '$totalCal kcal',
                         style: AppTypography.caption
-                            .copyWith(color: AppColors.lime, fontWeight: FontWeight.w700),
+                            .copyWith(color: colors.lime, fontWeight: FontWeight.w700),
                       ),
                     ],
                   ),
@@ -590,7 +559,7 @@ class _MealPlanView extends StatelessWidget {
                       child: Row(
                         children: [
                           Text(
-                            _mealTypeEmoji(m['type'] as String? ?? ''),
+                            mealEmoji(m['type'] as String? ?? ''),
                             style: const TextStyle(fontSize: 14),
                           ),
                           const SizedBox(width: 8),
@@ -598,7 +567,7 @@ class _MealPlanView extends StatelessWidget {
                             child: Text(
                               m['name'] as String? ?? '',
                               style: AppTypography.body.copyWith(
-                                  color: AppColors.textSecondary),
+                                  color: colors.textSecondary),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -606,7 +575,7 @@ class _MealPlanView extends StatelessWidget {
                           Text(
                             '${m['calories'] ?? 0} kcal',
                             style: AppTypography.caption
-                                .copyWith(color: AppColors.textTertiary),
+                                .copyWith(color: colors.textTertiary),
                           ),
                         ],
                       ),
@@ -628,21 +597,21 @@ class _MealPlanView extends StatelessWidget {
                 Text(
                   '🛒 GROCERY LIST',
                   style: AppTypography.overline
-                      .copyWith(color: AppColors.textTertiary),
+                      .copyWith(color: colors.textTertiary),
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 ...(planData['grocery_list'] as List).map((item) => Padding(
                       padding: const EdgeInsets.only(bottom: 4),
                       child: Row(
                         children: [
-                          const Icon(Icons.check_box_outline_blank_rounded,
-                              size: 16, color: AppColors.textTertiary),
+                          Icon(Icons.check_box_outline_blank_rounded,
+                              size: 16, color: colors.textTertiary),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               item.toString(),
                               style: AppTypography.body
-                                  .copyWith(color: AppColors.textSecondary),
+                                  .copyWith(color: colors.textSecondary),
                             ),
                           ),
                         ],
@@ -656,18 +625,4 @@ class _MealPlanView extends StatelessWidget {
     );
   }
 
-  String _mealTypeEmoji(String type) {
-    switch (type.toLowerCase()) {
-      case 'breakfast':
-        return '🌅';
-      case 'lunch':
-        return '☀️';
-      case 'dinner':
-        return '🌙';
-      case 'snack':
-        return '🍎';
-      default:
-        return '🍽️';
-    }
-  }
 }

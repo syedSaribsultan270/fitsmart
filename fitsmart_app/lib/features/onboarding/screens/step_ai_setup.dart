@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../providers/onboarding_provider.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/theme_extensions.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/utils/tdee_calculator.dart';
 
@@ -28,7 +28,7 @@ class _StepAiSetupState extends ConsumerState<StepAiSetup>
     'Computing your TDEE...',
     'Calibrating macro targets...',
     'Personalizing your plan...',
-    'Ready! 🎉',
+    'Ready! \uD83C\uDF89',
   ];
 
   @override
@@ -63,7 +63,7 @@ class _StepAiSetupState extends ConsumerState<StepAiSetup>
     final bottomPad = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
+      backgroundColor: context.colors.bgPrimary,
       body: Stack(
         children: [
           // Background glow
@@ -78,7 +78,7 @@ class _StepAiSetupState extends ConsumerState<StepAiSetup>
                   center: Alignment.topCenter,
                   radius: 1.2,
                   colors: [
-                    AppColors.lime.withValues(alpha: 0.08),
+                    context.colors.lime.withValues(alpha: 0.08),
                     Colors.transparent,
                   ],
                 ),
@@ -105,7 +105,7 @@ class _StepAiSetupState extends ConsumerState<StepAiSetup>
                       _phases[_phase.clamp(0, _phases.length - 1)],
                       key: ValueKey(_phase),
                       style: AppTypography.h3.copyWith(
-                        color: _done ? AppColors.lime : AppColors.textSecondary,
+                        color: _done ? context.colors.lime : context.colors.textSecondary,
                         fontWeight: FontWeight.w600,
                       ),
                       textAlign: TextAlign.center,
@@ -123,21 +123,21 @@ class _StepAiSetupState extends ConsumerState<StepAiSetup>
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                       decoration: BoxDecoration(
-                        color: AppColors.limeGlow,
+                        color: context.colors.limeGlow,
                         borderRadius: BorderRadius.circular(AppRadius.full),
                         border: Border.all(
-                          color: AppColors.lime.withValues(alpha: 0.3),
+                          color: context.colors.lime.withValues(alpha: 0.3),
                         ),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text('⚡', style: TextStyle(fontSize: 20)),
+                          const Text('\u26A1', style: TextStyle(fontSize: 20)),
                           const SizedBox(width: 8),
                           Text(
                             '+100 XP  Welcome bonus!',
                             style: AppTypography.bodyMedium.copyWith(
-                              color: AppColors.lime,
+                              color: context.colors.lime,
                               fontWeight: FontWeight.w800,
                             ),
                           ),
@@ -149,8 +149,8 @@ class _StepAiSetupState extends ConsumerState<StepAiSetup>
 
                     AppButton(
                       label: widget.isSubmitting
-                          ? 'Saving your profile…'
-                          : 'Unlock My Dashboard 🚀',
+                          ? 'Saving your profile\u2026'
+                          : 'Unlock My Dashboard \uD83D\uDE80',
                       isLoading: widget.isSubmitting,
                       onPressed: widget.isSubmitting ? null : widget.onComplete,
                     ).animate(delay: 300.ms).slideY(begin: 0.2, duration: 400.ms).fadeIn(),
@@ -168,8 +168,8 @@ class _StepAiSetupState extends ConsumerState<StepAiSetup>
                           margin: const EdgeInsets.symmetric(horizontal: 3),
                           decoration: BoxDecoration(
                             color: i == _phase % 4
-                                ? AppColors.lime
-                                : AppColors.surfaceCardBorder,
+                                ? context.colors.lime
+                                : context.colors.surfaceCardBorder,
                             borderRadius: BorderRadius.circular(AppRadius.full),
                           ),
                         );
@@ -218,7 +218,7 @@ class _AiPulseWidgetState extends State<_AiPulseWidget>
   @override
   Widget build(BuildContext context) {
     if (widget.done) {
-      return const Text('🎉', style: TextStyle(fontSize: 80))
+      return const Text('\uD83C\uDF89', style: TextStyle(fontSize: 80))
           .animate()
           .scale(duration: 600.ms, curve: Curves.elasticOut)
           .fadeIn();
@@ -236,7 +236,7 @@ class _AiPulseWidgetState extends State<_AiPulseWidget>
               height: 120 + pulse * 20,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.lime.withValues(alpha: 0.05 * pulse),
+                color: context.colors.lime.withValues(alpha: 0.05 * pulse),
               ),
             ),
             // Middle pulse
@@ -245,7 +245,7 @@ class _AiPulseWidgetState extends State<_AiPulseWidget>
               height: 100 + pulse * 10,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.lime.withValues(alpha: 0.08 * pulse),
+                color: context.colors.lime.withValues(alpha: 0.08 * pulse),
               ),
             ),
             // Inner circle
@@ -254,14 +254,14 @@ class _AiPulseWidgetState extends State<_AiPulseWidget>
               height: 88,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.bgTertiary,
+                color: context.colors.bgTertiary,
                 border: Border.all(
-                  color: AppColors.lime.withValues(alpha: 0.3 + pulse * 0.4),
+                  color: context.colors.lime.withValues(alpha: 0.3 + pulse * 0.4),
                   width: 1.5,
                 ),
               ),
               child: const Center(
-                child: Text('🧠', style: TextStyle(fontSize: 40)),
+                child: Text('\uD83E\uDDE0', style: TextStyle(fontSize: 40)),
               ),
             ),
           ],
@@ -277,22 +277,23 @@ class _ResultsReveal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final stats = [
-      _Stat('🔥', 'Daily Calories', '${result.targetCalories.toStringAsFixed(0)} kcal', AppColors.warning),
-      _Stat('💪', 'Protein', '${result.proteinG.toStringAsFixed(0)}g', AppColors.cyan),
-      _Stat('⚡', 'Carbs', '${result.carbsG.toStringAsFixed(0)}g', AppColors.lime),
-      _Stat('🥑', 'Fat', '${result.fatG.toStringAsFixed(0)}g', AppColors.coral),
+      _Stat('\uD83D\uDD25', 'Daily Calories', '${result.targetCalories.toStringAsFixed(0)} kcal', colors.warning),
+      _Stat('\uD83D\uDCAA', 'Protein', '${result.proteinG.toStringAsFixed(0)}g', colors.cyan),
+      _Stat('\u26A1', 'Carbs', '${result.carbsG.toStringAsFixed(0)}g', colors.lime),
+      _Stat('\uD83E\uDD51', 'Fat', '${result.fatG.toStringAsFixed(0)}g', colors.coral),
     ];
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.cardPadding),
       decoration: BoxDecoration(
-        color: AppColors.surfaceCard,
+        color: context.colors.surfaceCard,
         borderRadius: BorderRadius.circular(AppRadius.xl),
-        border: Border.all(color: AppColors.lime.withValues(alpha: 0.3)),
+        border: Border.all(color: context.colors.lime.withValues(alpha: 0.3)),
         boxShadow: [
           BoxShadow(
-            color: AppColors.lime.withValues(alpha: 0.08),
+            color: context.colors.lime.withValues(alpha: 0.08),
             blurRadius: 20,
             spreadRadius: 0,
           ),
@@ -306,7 +307,7 @@ class _ResultsReveal extends StatelessWidget {
           ),
           Text(
             'Personalized for your goals',
-            style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+            style: AppTypography.caption.copyWith(color: context.colors.textTertiary),
           ),
           const SizedBox(height: AppSpacing.sectionGap),
           GridView.count(
@@ -344,7 +345,7 @@ class _ResultsReveal extends StatelessWidget {
                           Text(
                             s.label,
                             style: AppTypography.overline.copyWith(
-                              color: AppColors.textTertiary,
+                              color: context.colors.textTertiary,
                               fontSize: 9,
                             ),
                           ),

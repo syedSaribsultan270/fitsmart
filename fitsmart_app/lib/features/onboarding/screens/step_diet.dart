@@ -3,9 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../providers/onboarding_provider.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/theme_extensions.dart';
 import '../../../core/widgets/app_button.dart';
 import 'onboarding_flow.dart';
 
@@ -23,25 +23,25 @@ class _StepDietState extends ConsumerState<StepDiet> {
   final _dislikedController = TextEditingController();
 
   static const _dietOptions = [
-    ('🍽️', 'Everything', 'no_restriction'),
-    ('🥗', 'Vegetarian', 'vegetarian'),
-    ('🌱', 'Vegan', 'vegan'),
-    ('🐟', 'Pescatarian', 'pescatarian'),
-    ('🥓', 'Keto', 'keto'),
-    ('🦴', 'Paleo', 'paleo'),
-    ('☪️', 'Halal', 'halal'),
-    ('✡️', 'Kosher', 'kosher'),
-    ('🌾', 'Gluten-Free', 'gluten_free'),
-    ('🥛', 'Dairy-Free', 'dairy_free'),
-    ('🌶️', 'Low FODMAP', 'low_fodmap'),
-    ('💉', 'Diabetic-Friendly', 'diabetic'),
+    ('\uD83C\uDF7D\uFE0F', 'Everything', 'no_restriction'),
+    ('\uD83E\uDD57', 'Vegetarian', 'vegetarian'),
+    ('\uD83C\uDF31', 'Vegan', 'vegan'),
+    ('\uD83D\uDC1F', 'Pescatarian', 'pescatarian'),
+    ('\uD83E\uDD53', 'Keto', 'keto'),
+    ('\uD83E\uDDB4', 'Paleo', 'paleo'),
+    ('\u262A\uFE0F', 'Halal', 'halal'),
+    ('\u2721\uFE0F', 'Kosher', 'kosher'),
+    ('\uD83C\uDF3E', 'Gluten-Free', 'gluten_free'),
+    ('\uD83E\uDD5B', 'Dairy-Free', 'dairy_free'),
+    ('\uD83C\uDF36\uFE0F', 'Low FODMAP', 'low_fodmap'),
+    ('\uD83D\uDC89', 'Diabetic-Friendly', 'diabetic'),
   ];
 
   static const _cuisineOptions = [
-    ('🍛', 'Indian'), ('🍝', 'Italian'), ('🌮', 'Mexican'), ('🍜', 'Asian'),
-    ('🥙', 'Mediterranean'), ('🍔', 'American'), ('🥘', 'Middle Eastern'),
-    ('🍱', 'Japanese'), ('🥗', 'Salad/Healthy'), ('🍕', 'Pizza/Comfort'),
-    ('🍖', 'BBQ'), ('🍣', 'Sushi'), ('🌍', 'African'), ('🥐', 'French'),
+    ('\uD83C\uDF5B', 'Indian'), ('\uD83C\uDF5D', 'Italian'), ('\uD83C\uDF2E', 'Mexican'), ('\uD83C\uDF5C', 'Asian'),
+    ('\uD83E\uDD59', 'Mediterranean'), ('\uD83C\uDF54', 'American'), ('\uD83E\uDD58', 'Middle Eastern'),
+    ('\uD83C\uDF71', 'Japanese'), ('\uD83E\uDD57', 'Salad/Healthy'), ('\uD83C\uDF55', 'Pizza/Comfort'),
+    ('\uD83C\uDF56', 'BBQ'), ('\uD83C\uDF63', 'Sushi'), ('\uD83C\uDF0D', 'African'), ('\uD83E\uDD50', 'French'),
   ];
 
   @override
@@ -53,14 +53,14 @@ class _StepDietState extends ConsumerState<StepDiet> {
   @override
   Widget build(BuildContext context) {
     return OnboardingStepBase(
-      emoji: '🍽️',
+      emoji: '\uD83C\uDF7D\uFE0F',
       title: 'What Fuels\nYour Engine?',
       subtitle: 'Your AI meal plans will respect these preferences.',
       scrollable: true,
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('DIETARY STYLE', style: AppTypography.overline.copyWith(color: AppColors.textTertiary)),
+          Text('DIETARY STYLE', style: AppTypography.overline.copyWith(color: context.colors.textTertiary)),
           const SizedBox(height: AppSpacing.md),
           Wrap(
             spacing: 8,
@@ -88,10 +88,10 @@ class _StepDietState extends ConsumerState<StepDiet> {
                   duration: 180.ms,
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: isSelected ? AppColors.limeGlow : AppColors.surfaceCard,
+                    color: isSelected ? context.colors.limeGlow : context.colors.surfaceCard,
                     borderRadius: BorderRadius.circular(AppRadius.full),
                     border: Border.all(
-                      color: isSelected ? AppColors.lime : AppColors.surfaceCardBorder,
+                      color: isSelected ? context.colors.lime : context.colors.surfaceCardBorder,
                       width: isSelected ? 1.5 : 1,
                     ),
                   ),
@@ -103,7 +103,7 @@ class _StepDietState extends ConsumerState<StepDiet> {
                       Text(
                         label,
                         style: AppTypography.caption.copyWith(
-                          color: isSelected ? AppColors.lime : AppColors.textSecondary,
+                          color: isSelected ? context.colors.lime : context.colors.textSecondary,
                           fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                         ),
                       ),
@@ -115,7 +115,7 @@ class _StepDietState extends ConsumerState<StepDiet> {
           ),
           const SizedBox(height: AppSpacing.sectionGap),
 
-          Text('CUISINE PREFERENCES', style: AppTypography.overline.copyWith(color: AppColors.textTertiary)),
+          Text('CUISINE PREFERENCES', style: AppTypography.overline.copyWith(color: context.colors.textTertiary)),
           const SizedBox(height: AppSpacing.md),
           Wrap(
             spacing: 8,
@@ -138,10 +138,10 @@ class _StepDietState extends ConsumerState<StepDiet> {
                   duration: 180.ms,
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: isSelected ? AppColors.cyan.withValues(alpha: 0.1) : AppColors.surfaceCard,
+                    color: isSelected ? context.colors.cyan.withValues(alpha: 0.1) : context.colors.surfaceCard,
                     borderRadius: BorderRadius.circular(AppRadius.full),
                     border: Border.all(
-                      color: isSelected ? AppColors.cyan : AppColors.surfaceCardBorder,
+                      color: isSelected ? context.colors.cyan : context.colors.surfaceCardBorder,
                       width: isSelected ? 1.5 : 1,
                     ),
                   ),
@@ -153,7 +153,7 @@ class _StepDietState extends ConsumerState<StepDiet> {
                       Text(
                         label,
                         style: AppTypography.caption.copyWith(
-                          color: isSelected ? AppColors.cyan : AppColors.textSecondary,
+                          color: isSelected ? context.colors.cyan : context.colors.textSecondary,
                           fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                         ),
                       ),
@@ -165,7 +165,7 @@ class _StepDietState extends ConsumerState<StepDiet> {
           ),
           const SizedBox(height: AppSpacing.sectionGap),
 
-          Text('DISLIKED INGREDIENTS (OPTIONAL)', style: AppTypography.overline.copyWith(color: AppColors.textTertiary)),
+          Text('DISLIKED INGREDIENTS (OPTIONAL)', style: AppTypography.overline.copyWith(color: context.colors.textTertiary)),
           const SizedBox(height: AppSpacing.md),
           TextField(
             controller: _dislikedController,

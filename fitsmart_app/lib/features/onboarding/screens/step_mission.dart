@@ -3,9 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../providers/onboarding_provider.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_colors_extension.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/theme_extensions.dart';
 import '../../../core/widgets/app_button.dart';
 import 'onboarding_flow.dart';
 
@@ -20,24 +21,29 @@ class StepMission extends ConsumerStatefulWidget {
 class _StepMissionState extends ConsumerState<StepMission> {
   String? _selected;
 
-  static const _goals = [
-    _GoalOption('lose_fat', '🔥', 'Burn Fat', 'Lean & mean', AppColors.coral),
-    _GoalOption('gain_muscle', '💪', 'Build Muscle', 'Get swole', AppColors.cyan),
-    _GoalOption('recomp', '⚡', 'Do Both', 'Body recomposition', AppColors.lime),
-    _GoalOption('athletic', '🏆', 'Athletic Performance', 'Fast & strong', AppColors.warning),
-    _GoalOption('maintain', '🎯', 'Maintain Weight', 'Stay perfect', AppColors.macroFiber),
-    _GoalOption('healthy', '❤️', 'Just Stay Healthy', 'Feel amazing', AppColors.success),
-  ];
+  static List<_GoalOption> _goals(BuildContext context) {
+    final colors = context.colors;
+    return [
+      _GoalOption('lose_fat', '\uD83D\uDD25', 'Burn Fat', 'Lean & mean', colors.coral),
+      _GoalOption('gain_muscle', '\uD83D\uDCAA', 'Build Muscle', 'Get swole', colors.cyan),
+      _GoalOption('recomp', '\u26A1', 'Do Both', 'Body recomposition', colors.lime),
+      _GoalOption('athletic', '\uD83C\uDFC6', 'Athletic Performance', 'Fast & strong', colors.warning),
+      _GoalOption('maintain', '\uD83C\uDFAF', 'Maintain Weight', 'Stay perfect', AppColorsExtension.macroFiber),
+      _GoalOption('healthy', '\u2764\uFE0F', 'Just Stay Healthy', 'Feel amazing', colors.success),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
+    final goals = _goals(context);
+
     return OnboardingStepBase(
-      emoji: '🎯',
+      emoji: '\uD83C\uDFAF',
       title: 'Choose Your\nMission',
       subtitle: 'What brings you here? Pick your primary goal.',
       contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding),
       content: GridView.builder(
-        itemCount: _goals.length,
+        itemCount: goals.length,
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
           crossAxisSpacing: 12,
@@ -45,7 +51,7 @@ class _StepMissionState extends ConsumerState<StepMission> {
           childAspectRatio: 1.1,
         ),
         itemBuilder: (_, i) {
-          final g = _goals[i];
+          final g = goals[i];
           final isSelected = _selected == g.id;
           return _GoalCard(
             option: g,
@@ -99,10 +105,10 @@ class _GoalCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected
               ? option.color.withValues(alpha: 0.12)
-              : AppColors.surfaceCard,
+              : context.colors.surfaceCard,
           borderRadius: BorderRadius.circular(AppRadius.lg),
           border: Border.all(
-            color: isSelected ? option.color : AppColors.surfaceCardBorder,
+            color: isSelected ? option.color : context.colors.surfaceCardBorder,
             width: isSelected ? 1.5 : 1,
           ),
           boxShadow: isSelected
@@ -133,7 +139,7 @@ class _GoalCard extends StatelessWidget {
                         color: option.color,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.check, size: 12, color: AppColors.textInverse),
+                      child: Icon(Icons.check, size: 12, color: context.colors.textInverse),
                     ),
                 ],
               ),
@@ -144,13 +150,13 @@ class _GoalCard extends StatelessWidget {
                     option.title,
                     style: AppTypography.bodyMedium.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: isSelected ? option.color : AppColors.textPrimary,
+                      color: isSelected ? option.color : context.colors.textPrimary,
                     ),
                   ),
                   Text(
                     option.subtitle,
                     style: AppTypography.caption.copyWith(
-                      color: AppColors.textTertiary,
+                      color: context.colors.textTertiary,
                     ),
                   ),
                 ],

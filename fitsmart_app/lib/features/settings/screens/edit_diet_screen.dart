@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/theme_extensions.dart';
 import '../../../models/onboarding_data.dart';
 import '../../../features/dashboard/providers/dashboard_provider.dart';
 import '../../../services/auth_service.dart';
@@ -63,7 +63,7 @@ class _EditDietScreenState extends ConsumerState<EditDietScreen> {
 
       await prefs.setString('onboarding_data', jsonEncode(data.toJson()));
       final uid = AuthService.uid;
-      if (uid != null) FirestoreService.saveProfile(uid, data.toJson()).catchError((_) {});
+      if (uid != null) FirestoreService.saveProfile(uid, data.toJson()).catchError((e) { debugPrint('[Firestore] diet sync failed: $e'); });
       ref.invalidate(userProfileProvider);
 
       if (mounted) {
@@ -86,7 +86,7 @@ class _EditDietScreenState extends ConsumerState<EditDietScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
+      backgroundColor: context.colors.bgPrimary,
       appBar: AppBar(
         title: Text('Diet Preferences', style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w700)),
         leading: IconButton(
@@ -97,8 +97,8 @@ class _EditDietScreenState extends ConsumerState<EditDietScreen> {
           TextButton(
             onPressed: _isLoading ? null : _save,
             child: _isLoading
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.lime))
-                : Text('Save', style: AppTypography.bodyMedium.copyWith(color: AppColors.lime)),
+                ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: context.colors.lime))
+                : Text('Save', style: AppTypography.bodyMedium.copyWith(color: context.colors.lime)),
           ),
         ],
       ),
@@ -118,13 +118,13 @@ class _EditDietScreenState extends ConsumerState<EditDietScreen> {
                 onSelected: (v) => setState(() {
                   v ? _restrictions.add(r.toLowerCase()) : _restrictions.remove(r.toLowerCase());
                 }),
-                selectedColor: AppColors.lime.withValues(alpha: 0.2),
-                checkmarkColor: AppColors.lime,
+                selectedColor: context.colors.lime.withValues(alpha: 0.2),
+                checkmarkColor: context.colors.lime,
                 labelStyle: AppTypography.caption.copyWith(
-                  color: selected ? AppColors.lime : AppColors.textSecondary,
+                  color: selected ? context.colors.lime : context.colors.textSecondary,
                 ),
-                side: BorderSide(color: selected ? AppColors.lime : AppColors.surfaceCardBorder),
-                backgroundColor: AppColors.surfaceCard,
+                side: BorderSide(color: selected ? context.colors.lime : context.colors.surfaceCardBorder),
+                backgroundColor: context.colors.surfaceCard,
               );
             }).toList(),
           ),
@@ -143,13 +143,13 @@ class _EditDietScreenState extends ConsumerState<EditDietScreen> {
                 onSelected: (v) => setState(() {
                   v ? _cuisines.add(c.toLowerCase()) : _cuisines.remove(c.toLowerCase());
                 }),
-                selectedColor: AppColors.cyan.withValues(alpha: 0.2),
-                checkmarkColor: AppColors.cyan,
+                selectedColor: context.colors.cyan.withValues(alpha: 0.2),
+                checkmarkColor: context.colors.cyan,
                 labelStyle: AppTypography.caption.copyWith(
-                  color: selected ? AppColors.cyan : AppColors.textSecondary,
+                  color: selected ? context.colors.cyan : context.colors.textSecondary,
                 ),
-                side: BorderSide(color: selected ? AppColors.cyan : AppColors.surfaceCardBorder),
-                backgroundColor: AppColors.surfaceCard,
+                side: BorderSide(color: selected ? context.colors.cyan : context.colors.surfaceCardBorder),
+                backgroundColor: context.colors.surfaceCard,
               );
             }).toList(),
           ),

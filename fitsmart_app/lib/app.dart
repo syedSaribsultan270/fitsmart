@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
+import 'providers/settings_provider.dart';
 import 'router.dart';
 import 'services/snackbar_service.dart';
 
@@ -21,12 +22,20 @@ class _FitSmartAppState extends ConsumerState<FitSmartApp> {
 
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    final settings = ref.watch(settingsProvider);
+    final accent = settings.accentColor;
+    final isDark = settings.themeMode == ThemeMode.dark ||
+        (settings.themeMode == ThemeMode.system &&
+            MediaQuery.platformBrightnessOf(context) == Brightness.dark);
+
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
-      statusBarBrightness: Brightness.dark,
-      systemNavigationBarColor: Color(0xFF111114),
-      systemNavigationBarIconBrightness: Brightness.light,
+      statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+      statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+      systemNavigationBarColor:
+          isDark ? const Color(0xFF111114) : const Color(0xFFFFFFFF),
+      systemNavigationBarIconBrightness:
+          isDark ? Brightness.light : Brightness.dark,
     ));
 
     SystemChrome.setPreferredOrientations([
@@ -36,9 +45,9 @@ class _FitSmartAppState extends ConsumerState<FitSmartApp> {
 
     return MaterialApp.router(
       title: 'FitSmart AI',
-      theme: AppTheme.dark,
-      darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.dark,
+      theme: AppTheme.light(accent: accent),
+      darkTheme: AppTheme.dark(accent: accent),
+      themeMode: settings.themeMode,
       routerConfig: appRouter,
       scaffoldMessengerKey: SnackbarService.scaffoldMessengerKey,
       debugShowCheckedModeBanner: false,
@@ -49,8 +58,6 @@ class _FitSmartAppState extends ConsumerState<FitSmartApp> {
           ),
           child: DefaultTextStyle(
             style: DefaultTextStyle.of(context).style.copyWith(
-              // Provide system emoji/symbol fonts as fallbacks so Flutter
-              // Web can render emoji without triggering the Noto warning.
               fontFamilyFallback: const [
                 'Noto Color Emoji',
                 'Apple Color Emoji',

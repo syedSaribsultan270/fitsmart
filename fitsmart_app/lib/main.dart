@@ -8,6 +8,7 @@ import 'firebase_options.dart';
 import 'app.dart';
 import 'data/database/database_provider.dart';
 import 'services/database_seeder.dart';
+import 'services/food_knowledge_service.dart';
 
 void main() async {
   // Catch async errors not caught by Flutter framework
@@ -28,6 +29,9 @@ void main() async {
 
       // Seed exercise library on first launch
       await DatabaseSeeder(appDatabaseInstance).seedIfNeeded();
+
+      // Preload food knowledge base (Indian + common foods) for RAG
+      FoodKnowledgeService.instance.load(); // fire-and-forget, non-blocking
 
       // Global Flutter error handler → Crashlytics
       FlutterError.onError = (details) {

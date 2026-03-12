@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/theme_extensions.dart';
 import '../../../core/widgets/app_button.dart';
 
 class StepWelcome extends StatelessWidget {
@@ -12,7 +12,7 @@ class StepWelcome extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
+      backgroundColor: context.colors.bgPrimary,
       body: Stack(
         children: [
           // Background radial glow
@@ -26,7 +26,7 @@ class StepWelcome extends StatelessWidget {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    AppColors.lime.withValues(alpha: 0.08),
+                    context.colors.lime.withValues(alpha: 0.08),
                     Colors.transparent,
                   ],
                 ),
@@ -43,7 +43,7 @@ class StepWelcome extends StatelessWidget {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    AppColors.cyan.withValues(alpha: 0.06),
+                    context.colors.cyan.withValues(alpha: 0.06),
                     Colors.transparent,
                   ],
                 ),
@@ -74,8 +74,8 @@ class StepWelcome extends StatelessWidget {
                     style: AppTypography.display.copyWith(
                       height: 1.05,
                       foreground: Paint()
-                        ..shader = const LinearGradient(
-                          colors: [AppColors.lime, AppColors.cyan],
+                        ..shader = LinearGradient(
+                          colors: [context.colors.lime, context.colors.cyan],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ).createShader(
@@ -96,7 +96,7 @@ class StepWelcome extends StatelessWidget {
                   Text(
                     'Your AI-powered fitness & nutrition coach. Built for results. Designed for you.',
                     style: AppTypography.h3.copyWith(
-                      color: AppColors.textSecondary,
+                      color: context.colors.textSecondary,
                       fontWeight: FontWeight.w400,
                     ),
                   )
@@ -143,9 +143,9 @@ class StepWelcome extends StatelessWidget {
 
                   Center(
                     child: Text(
-                      'Takes 3 minutes • Free forever',
+                      'Takes 3 minutes \u2022 Free forever',
                       style: AppTypography.caption.copyWith(
-                        color: AppColors.textTertiary,
+                        color: context.colors.textTertiary,
                       ),
                     ),
                   )
@@ -163,9 +163,9 @@ class StepWelcome extends StatelessWidget {
   }
 
   static const _features = [
-    {'icon': '📸', 'text': 'AI meal analysis from photos'},
-    {'icon': '💪', 'text': 'Personalized workout & meal plans'},
-    {'icon': '🏆', 'text': 'Gamified progress tracking'},
+    {'icon': '\uD83D\uDCF8', 'text': 'AI meal analysis from photos'},
+    {'icon': '\uD83D\uDCAA', 'text': 'Personalized workout & meal plans'},
+    {'icon': '\uD83C\uDFC6', 'text': 'Gamified progress tracking'},
   ];
 }
 
@@ -210,16 +210,16 @@ class _AnimatedLogoState extends State<_AnimatedLogo>
         height: 120,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          gradient: const RadialGradient(
-            colors: [AppColors.limeGlow, Colors.transparent],
+          gradient: RadialGradient(
+            colors: [context.colors.limeGlow, Colors.transparent],
           ),
           border: Border.all(
-            color: AppColors.lime.withValues(alpha: 0.3),
+            color: context.colors.lime.withValues(alpha: 0.3),
             width: 1.5,
           ),
         ),
         child: const Center(
-          child: Text('⚡', style: TextStyle(fontSize: 56)),
+          child: Text('\u26A1', style: TextStyle(fontSize: 56)),
         ),
       )
           .animate()
@@ -242,9 +242,9 @@ class _FeatureRow extends StatelessWidget {
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: AppColors.bgTertiary,
+            color: context.colors.bgTertiary,
             borderRadius: BorderRadius.circular(AppRadius.md),
-            border: Border.all(color: AppColors.surfaceCardBorder),
+            border: Border.all(color: context.colors.surfaceCardBorder),
           ),
           child: Center(child: Text(icon, style: const TextStyle(fontSize: 18))),
         ),
@@ -252,7 +252,7 @@ class _FeatureRow extends StatelessWidget {
         Text(
           text,
           style: AppTypography.bodyMedium.copyWith(
-            color: AppColors.textSecondary,
+            color: context.colors.textSecondary,
           ),
         ),
       ],

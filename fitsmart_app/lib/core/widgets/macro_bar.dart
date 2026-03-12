@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_typography.dart';
+import '../theme/theme_extensions.dart';
 
 class MacroBar extends StatelessWidget {
   final String label;
@@ -22,6 +22,7 @@ class MacroBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final progress = (target > 0 ? consumed / target : 0).clamp(0.0, 1.0);
     final isOver = consumed > target;
 
@@ -45,7 +46,7 @@ class MacroBar extends StatelessWidget {
                 Text(
                   label,
                   style: AppTypography.caption.copyWith(
-                    color: AppColors.textSecondary,
+                    color: c.textSecondary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -56,14 +57,14 @@ class MacroBar extends StatelessWidget {
                 Text(
                   consumed.toStringAsFixed(0),
                   style: AppTypography.caption.copyWith(
-                    color: isOver ? AppColors.error : AppColors.textPrimary,
+                    color: isOver ? c.error : c.textPrimary,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 Text(
                   ' / ${target.toStringAsFixed(0)}$unit',
                   style: AppTypography.caption.copyWith(
-                    color: AppColors.textTertiary,
+                    color: c.textTertiary,
                   ),
                 ),
               ],
@@ -79,7 +80,7 @@ class MacroBar extends StatelessWidget {
                 Container(
                   height: 6,
                   decoration: BoxDecoration(
-                    color: AppColors.surfaceCardBorder,
+                    color: c.surfaceCardBorder,
                     borderRadius: BorderRadius.circular(AppRadius.full),
                   ),
                 ),
@@ -90,11 +91,11 @@ class MacroBar extends StatelessWidget {
                   height: 6,
                   width: constraints.maxWidth * progress,
                   decoration: BoxDecoration(
-                    color: isOver ? AppColors.error : color,
+                    color: isOver ? c.error : color,
                     borderRadius: BorderRadius.circular(AppRadius.full),
                     boxShadow: [
                       BoxShadow(
-                        color: (isOver ? AppColors.error : color)
+                        color: (isOver ? c.error : color)
                             .withValues(alpha: 0.4),
                         blurRadius: 4,
                         offset: const Offset(0, 1),

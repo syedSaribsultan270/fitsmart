@@ -124,6 +124,9 @@ class AiInsights extends Table {
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
+  /// Constructor for testing with a custom executor (e.g. in-memory).
+  AppDatabase.forTesting(super.executor);
+
   @override
   int get schemaVersion => 2;
 

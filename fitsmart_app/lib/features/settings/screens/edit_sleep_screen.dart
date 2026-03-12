@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/theme_extensions.dart';
 import '../../../models/onboarding_data.dart';
 import '../../../features/dashboard/providers/dashboard_provider.dart';
 import '../../../services/auth_service.dart';
@@ -65,7 +65,7 @@ class _EditSleepScreenState extends ConsumerState<EditSleepScreen> {
 
       await prefs.setString('onboarding_data', jsonEncode(data.toJson()));
       final uid = AuthService.uid;
-      if (uid != null) FirestoreService.saveProfile(uid, data.toJson()).catchError((_) {});
+      if (uid != null) FirestoreService.saveProfile(uid, data.toJson()).catchError((e) { debugPrint('[Firestore] sleep sync failed: $e'); });
       ref.invalidate(userProfileProvider);
 
       if (mounted) {
@@ -82,7 +82,7 @@ class _EditSleepScreenState extends ConsumerState<EditSleepScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
+      backgroundColor: context.colors.bgPrimary,
       appBar: AppBar(
         title: Text('Sleep Schedule', style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w700)),
         leading: IconButton(
@@ -93,8 +93,8 @@ class _EditSleepScreenState extends ConsumerState<EditSleepScreen> {
           TextButton(
             onPressed: _isLoading ? null : _save,
             child: _isLoading
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.lime))
-                : Text('Save', style: AppTypography.bodyMedium.copyWith(color: AppColors.lime)),
+                ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: context.colors.lime))
+                : Text('Save', style: AppTypography.bodyMedium.copyWith(color: context.colors.lime)),
           ),
         ],
       ),
@@ -106,7 +106,7 @@ class _EditSleepScreenState extends ConsumerState<EditSleepScreen> {
               icon: Icons.bedtime_rounded,
               label: 'Bedtime',
               value: _formatTime(_bedtime),
-              color: AppColors.cyan,
+              color: context.colors.cyan,
               onTap: () async {
                 final t = await showTimePicker(context: context, initialTime: _bedtime);
                 if (t != null) setState(() => _bedtime = t);
@@ -117,7 +117,7 @@ class _EditSleepScreenState extends ConsumerState<EditSleepScreen> {
               icon: Icons.wb_sunny_rounded,
               label: 'Wake Up',
               value: _formatTime(_wakeTime),
-              color: AppColors.lime,
+              color: context.colors.lime,
               onTap: () async {
                 final t = await showTimePicker(context: context, initialTime: _wakeTime);
                 if (t != null) setState(() => _wakeTime = t);
@@ -127,19 +127,19 @@ class _EditSleepScreenState extends ConsumerState<EditSleepScreen> {
             Container(
               padding: const EdgeInsets.all(AppSpacing.lg),
               decoration: BoxDecoration(
-                color: AppColors.surfaceCard,
+                color: context.colors.surfaceCard,
                 borderRadius: BorderRadius.circular(AppRadius.lg),
-                border: Border.all(color: AppColors.surfaceCardBorder),
+                border: Border.all(color: context.colors.surfaceCardBorder),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.schedule_rounded, color: AppColors.textTertiary, size: 20),
+                  Icon(Icons.schedule_rounded, color: context.colors.textTertiary, size: 20),
                   const SizedBox(width: AppSpacing.sm),
                   Text(
                     '${_sleepDuration.toStringAsFixed(1)} hours of sleep',
                     style: AppTypography.bodyMedium.copyWith(
-                      color: _sleepDuration >= 7 ? AppColors.success : AppColors.warning,
+                      color: _sleepDuration >= 7 ? context.colors.success : context.colors.warning,
                     ),
                   ),
                 ],
@@ -174,9 +174,9 @@ class _TimeTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.lg),
         decoration: BoxDecoration(
-          color: AppColors.surfaceCard,
+          color: context.colors.surfaceCard,
           borderRadius: BorderRadius.circular(AppRadius.lg),
-          border: Border.all(color: AppColors.surfaceCardBorder),
+          border: Border.all(color: context.colors.surfaceCardBorder),
         ),
         child: Row(
           children: [
@@ -185,12 +185,12 @@ class _TimeTile extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: AppTypography.caption.copyWith(color: AppColors.textTertiary)),
+                Text(label, style: AppTypography.caption.copyWith(color: context.colors.textTertiary)),
                 Text(value, style: AppTypography.h3),
               ],
             ),
             const Spacer(),
-            const Icon(Icons.edit_rounded, color: AppColors.textTertiary, size: 18),
+            Icon(Icons.edit_rounded, color: context.colors.textTertiary, size: 18),
           ],
         ),
       ),

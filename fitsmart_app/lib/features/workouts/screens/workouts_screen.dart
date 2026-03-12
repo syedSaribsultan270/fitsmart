@@ -4,18 +4,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:drift/drift.dart' hide Column;
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/theme_extensions.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../data/database/app_database.dart';
 import '../../../data/database/database_provider.dart';
 import '../../../features/dashboard/providers/dashboard_provider.dart';
 import '../../../providers/gemini_provider.dart';
-import '../../../services/gemini_client.dart';
 import '../../../services/snackbar_service.dart';
+import '../../../services/user_context_service.dart';
 
 class WorkoutsScreen extends ConsumerStatefulWidget {
   const WorkoutsScreen({super.key});
@@ -42,23 +42,24 @@ class _WorkoutsScreenState extends ConsumerState<WorkoutsScreen>
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
+      backgroundColor: colors.bgPrimary,
       appBar: AppBar(
         title: const Text('Workouts'),
         actions: [
           IconButton(
             icon: const Icon(Icons.play_circle_rounded),
-            color: AppColors.lime,
+            color: colors.lime,
             onPressed: () => context.push('/workouts/active'),
           ),
         ],
         bottom: TabBar(
           controller: _tabs,
-          indicatorColor: AppColors.lime,
+          indicatorColor: colors.lime,
           indicatorWeight: 2,
-          labelColor: AppColors.lime,
-          unselectedLabelColor: AppColors.textTertiary,
+          labelColor: colors.lime,
+          unselectedLabelColor: colors.textTertiary,
           labelStyle: AppTypography.overline,
           tabs: const [
             Tab(text: 'TODAY'),
@@ -86,6 +87,7 @@ class _TodayTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colors = context.colors;
     final todaysWorkoutsAsync = ref.watch(todaysWorkoutsProvider);
     final plansAsync = ref.watch(workoutPlansProvider);
     final workouts = todaysWorkoutsAsync.valueOrNull ?? [];
@@ -140,7 +142,7 @@ class _TodayTab extends ConsumerWidget {
               estMinutes = (totalSets * 3).clamp(15, 120);
             }
           }
-        } catch (_) {}
+        } catch (e) { debugPrint('[Workouts] parse today workout plan failed: $e'); }
       }
     }
 
@@ -149,12 +151,12 @@ class _TodayTab extends ConsumerWidget {
       children: [
         // ── Plan loading ──
         if (plansAsync.isLoading && !plansAsync.hasValue)
-          const AppCard(
+          AppCard(
             child: Center(
               child: Padding(
-                padding: EdgeInsets.all(AppSpacing.sectionGap),
+                padding: const EdgeInsets.all(AppSpacing.sectionGap),
                 child:
-                    CircularProgressIndicator(color: AppColors.lime),
+                    CircularProgressIndicator(color: colors.lime),
               ),
             ),
           )
@@ -167,14 +169,14 @@ class _TodayTab extends ConsumerWidget {
                 const SizedBox(height: AppSpacing.sm),
                 Text('Couldn\'t load workout plan',
                     style: AppTypography.body
-                        .copyWith(color: AppColors.textTertiary)),
+                        .copyWith(color: colors.textTertiary)),
                 const SizedBox(height: AppSpacing.sm),
                 TextButton(
                   onPressed: () =>
                       ref.invalidate(workoutPlansProvider),
                   child: Text('Retry',
                       style: AppTypography.bodyMedium
-                          .copyWith(color: AppColors.lime)),
+                          .copyWith(color: colors.lime)),
                 ),
               ],
             ),
@@ -182,7 +184,7 @@ class _TodayTab extends ConsumerWidget {
         // ── No active plan ──
         else if (!hasPlan)
           GlowCard(
-            glowColor: AppColors.cyan,
+            glowColor: colors.cyan,
             child: Column(
               children: [
                 const Text('📋', style: TextStyle(fontSize: 36)),
@@ -194,7 +196,7 @@ class _TodayTab extends ConsumerWidget {
                 Text(
                   'Generate an AI plan in the Plans tab, or start a quick workout.',
                   style: AppTypography.body
-                      .copyWith(color: AppColors.textSecondary),
+                      .copyWith(color: colors.textSecondary),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: AppSpacing.sectionGap),
@@ -208,7 +210,7 @@ class _TodayTab extends ConsumerWidget {
         // ── Rest day ──
         else if (todayDay == null)
           GlowCard(
-            glowColor: AppColors.success,
+            glowColor: colors.success,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -221,7 +223,7 @@ class _TodayTab extends ConsumerWidget {
                 Text(
                   'No workout scheduled today. Recover and come back stronger!',
                   style: AppTypography.body
-                      .copyWith(color: AppColors.textSecondary),
+                      .copyWith(color: colors.textSecondary),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: AppSpacing.sectionGap),
@@ -236,7 +238,7 @@ class _TodayTab extends ConsumerWidget {
         // ── Today's scheduled workout ──
         else
           GlowCard(
-            glowColor: AppColors.cyan,
+            glowColor: colors.cyan,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -247,21 +249,21 @@ class _TodayTab extends ConsumerWidget {
                           horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
                         color:
-                            AppColors.cyan.withValues(alpha: 0.15),
+                            colors.cyan.withValues(alpha: 0.15),
                         borderRadius:
                             BorderRadius.circular(AppRadius.full),
                       ),
                       child: Text(
                         'TODAY',
                         style: AppTypography.overline
-                            .copyWith(color: AppColors.cyan),
+                            .copyWith(color: colors.cyan),
                       ),
                     ),
                     const Spacer(),
                     Text(
                       '~$estMinutes min',
                       style: AppTypography.caption
-                          .copyWith(color: AppColors.textTertiary),
+                          .copyWith(color: colors.textTertiary),
                     ),
                   ],
                 ),
@@ -274,7 +276,7 @@ class _TodayTab extends ConsumerWidget {
                 Text(
                   focusLabel,
                   style: AppTypography.bodyMedium
-                      .copyWith(color: AppColors.textSecondary),
+                      .copyWith(color: colors.textSecondary),
                 ),
                 const SizedBox(height: AppSpacing.sectionGap),
                 ...dayExercises.take(4).map((e) => Padding(
@@ -285,8 +287,8 @@ class _TodayTab extends ConsumerWidget {
                           Container(
                             width: 6,
                             height: 6,
-                            decoration: const BoxDecoration(
-                              color: AppColors.cyan,
+                            decoration: BoxDecoration(
+                              color: colors.cyan,
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -294,7 +296,7 @@ class _TodayTab extends ConsumerWidget {
                           Text(
                               '${e['name']} — ${e['sets']}×${e['reps']}',
                               style: AppTypography.body.copyWith(
-                                  color: AppColors.textSecondary)),
+                                  color: colors.textSecondary)),
                         ],
                       ),
                     )),
@@ -302,7 +304,7 @@ class _TodayTab extends ConsumerWidget {
                   Text(
                     '+ ${dayExercises.length - 4} more exercises',
                     style: AppTypography.caption
-                        .copyWith(color: AppColors.textTertiary),
+                        .copyWith(color: colors.textTertiary),
                   ),
                 const SizedBox(height: AppSpacing.sectionGap),
                 AppButton(
@@ -322,7 +324,7 @@ class _TodayTab extends ConsumerWidget {
           Text(
             'COMPLETED TODAY',
             style: AppTypography.overline
-                .copyWith(color: AppColors.textTertiary),
+                .copyWith(color: colors.textTertiary),
           ),
           const SizedBox(height: AppSpacing.sm),
           ...workouts.map((w) => Padding(
@@ -334,12 +336,12 @@ class _TodayTab extends ConsumerWidget {
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: AppColors.success.withValues(alpha: 0.15),
+                          color: colors.success.withValues(alpha: 0.15),
                           shape: BoxShape.circle,
                         ),
-                        child: const Center(
+                        child: Center(
                           child: Icon(Icons.check_rounded,
-                              color: AppColors.success, size: 20),
+                              color: colors.success, size: 20),
                         ),
                       ),
                       const SizedBox(width: AppSpacing.md),
@@ -353,7 +355,7 @@ class _TodayTab extends ConsumerWidget {
                             Text(
                               '${(w.durationSeconds / 60).round()} min · ${w.totalSets} sets · ${w.estimatedCalories.toStringAsFixed(0)} kcal',
                               style: AppTypography.caption
-                                  .copyWith(color: AppColors.textTertiary),
+                                  .copyWith(color: colors.textTertiary),
                             ),
                           ],
                         ),
@@ -366,12 +368,12 @@ class _TodayTab extends ConsumerWidget {
         ],
 
         // Weekly volume (derived from plan data)
-        if (hasPlan) _buildWeeklyVolume(plansAsync),
+        if (hasPlan) _buildWeeklyVolume(context, plansAsync),
       ],
     );
   }
 
-  Widget _buildWeeklyVolume(AsyncValue<List<WorkoutPlan>> plansAsync) {
+  Widget _buildWeeklyVolume(BuildContext context, AsyncValue<List<WorkoutPlan>> plansAsync) {
     final plans = plansAsync.valueOrNull ?? [];
     final activePlan = plans.where((p) => p.isActive).firstOrNull;
     if (activePlan == null) return const SizedBox.shrink();
@@ -400,12 +402,13 @@ class _TodayTab extends ConsumerWidget {
           focusSets[focus] = (focusSets[focus] ?? 0) + sets;
         }
       }
-    } catch (_) {}
+    } catch (e) { debugPrint('[Workouts] parse weekly volume failed: $e'); }
 
     if (focusSets.isEmpty) return const SizedBox.shrink();
     final maxSets =
         focusSets.values.reduce((a, b) => a > b ? a : b).toDouble();
 
+    final colors = context.colors;
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -413,7 +416,7 @@ class _TodayTab extends ConsumerWidget {
           Text(
             'WEEKLY VOLUME',
             style: AppTypography.overline
-                .copyWith(color: AppColors.textTertiary),
+                .copyWith(color: colors.textTertiary),
           ),
           const SizedBox(height: AppSpacing.md),
           ...focusSets.entries.map((e) {
@@ -430,11 +433,11 @@ class _TodayTab extends ConsumerWidget {
                   Expanded(
                     child: LinearProgressIndicator(
                       value: pct,
-                      backgroundColor: AppColors.surfaceCardBorder,
+                      backgroundColor: colors.surfaceCardBorder,
                       valueColor: AlwaysStoppedAnimation(
                         pct >= 0.6
-                            ? AppColors.success
-                            : AppColors.warning,
+                            ? colors.success
+                            : colors.warning,
                       ),
                       minHeight: 6,
                       borderRadius:
@@ -445,7 +448,7 @@ class _TodayTab extends ConsumerWidget {
                   Text(
                     '${e.value} sets',
                     style: AppTypography.caption
-                        .copyWith(color: AppColors.textTertiary),
+                        .copyWith(color: colors.textTertiary),
                   ),
                 ],
               ),
@@ -469,30 +472,15 @@ class _PlansTab extends ConsumerStatefulWidget {
 class _PlansTabState extends ConsumerState<_PlansTab> {
   bool _isGenerating = false;
 
-  Future<Map<String, dynamic>> _buildUserContext() async {
-    Map<String, dynamic> profile = {};
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonStr = prefs.getString('onboarding_data');
-      if (jsonStr != null) {
-        profile = jsonDecode(jsonStr) as Map<String, dynamic>;
-      }
-    } catch (_) {}
-    return {
-      'goal': profile['primaryGoal'] ?? 'build_muscle',
-      'equipment': profile['equipment'] ?? 'full_gym',
-      'workout_days': profile['workoutDaysPerWeek'] ?? 4,
-      'activity_level': profile['activityLevel'] ?? 'moderate',
-      'fitness_level': profile['fitnessLevel'] ?? 'intermediate',
-    };
-  }
+  Future<Map<String, dynamic>> _buildUserContext() =>
+      UserContextService.buildWorkoutPlanContext(ref);
 
   Future<void> _generatePlan() async {
     setState(() => _isGenerating = true);
     try {
-      final gemini = ref.read(geminiClientProvider);
+      final ai = ref.read(aiProvider);
       final ctx = await _buildUserContext();
-      final result = await gemini.generateWorkoutPlan(
+      final result = await ai.generateWorkoutPlan(
         userContext: ctx,
         weeks: 4,
       );
@@ -528,21 +516,18 @@ class _PlansTabState extends ConsumerState<_PlansTab> {
         SnackbarService.success(
             'Workout plan generated! 💪');
       }
-    } on GeminiException catch (e) {
-      if (mounted) {
-        setState(() => _isGenerating = false);
-        SnackbarService.error(e.message);
-      }
     } catch (e) {
+      debugPrint('Workout plan error: $e');
       if (mounted) {
         setState(() => _isGenerating = false);
-        SnackbarService.error('Failed to generate plan: $e');
+        SnackbarService.error('Could not generate plan. Please try again.');
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final plansAsync = ref.watch(workoutPlansProvider);
     if (plansAsync.isLoading && !plansAsync.hasValue) {
       return ListView(
@@ -553,7 +538,7 @@ class _PlansTabState extends ConsumerState<_PlansTab> {
             onPressed: null,
           ),
           const SizedBox(height: AppSpacing.sectionGap),
-          const Center(child: CircularProgressIndicator(color: AppColors.lime)),
+          Center(child: CircularProgressIndicator(color: colors.lime)),
         ],
       );
     }
@@ -562,11 +547,11 @@ class _PlansTabState extends ConsumerState<_PlansTab> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Couldn\'t load plans', style: AppTypography.body.copyWith(color: AppColors.textTertiary)),
+            Text('Couldn\'t load plans', style: AppTypography.body.copyWith(color: colors.textTertiary)),
             const SizedBox(height: AppSpacing.sm),
             TextButton(
               onPressed: () => ref.invalidate(workoutPlansProvider),
-              child: Text('Retry', style: AppTypography.bodyMedium.copyWith(color: AppColors.lime)),
+              child: Text('Retry', style: AppTypography.bodyMedium.copyWith(color: colors.lime)),
             ),
           ],
         ),
@@ -589,7 +574,7 @@ class _PlansTabState extends ConsumerState<_PlansTab> {
           Text(
             'YOUR PLANS',
             style: AppTypography.overline
-                .copyWith(color: AppColors.textTertiary),
+                .copyWith(color: colors.textTertiary),
           ),
           const SizedBox(height: AppSpacing.md),
           ...plans.map((plan) {
@@ -597,7 +582,7 @@ class _PlansTabState extends ConsumerState<_PlansTab> {
             try {
               planData =
                   jsonDecode(plan.planJson) as Map<String, dynamic>;
-            } catch (_) {}
+            } catch (e) { debugPrint('[Workouts] parse plan JSON failed: $e'); }
             return Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.sm),
               child: AppCard(
@@ -609,8 +594,8 @@ class _PlansTabState extends ConsumerState<_PlansTab> {
                       height: 48,
                       decoration: BoxDecoration(
                         color: plan.isActive
-                            ? AppColors.lime.withValues(alpha: 0.15)
-                            : AppColors.bgTertiary,
+                            ? colors.lime.withValues(alpha: 0.15)
+                            : colors.bgTertiary,
                         borderRadius:
                             BorderRadius.circular(AppRadius.md),
                       ),
@@ -635,15 +620,15 @@ class _PlansTabState extends ConsumerState<_PlansTab> {
                             '${plan.weeks} weeks${plan.isActive ? ' · Active' : ''}',
                             style: AppTypography.caption.copyWith(
                               color: plan.isActive
-                                  ? AppColors.lime
-                                  : AppColors.textTertiary,
+                                  ? colors.lime
+                                  : colors.textTertiary,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const Icon(Icons.chevron_right_rounded,
-                        color: AppColors.textTertiary),
+                    Icon(Icons.chevron_right_rounded,
+                        color: colors.textTertiary),
                   ],
                 ),
               ),
@@ -655,7 +640,7 @@ class _PlansTabState extends ConsumerState<_PlansTab> {
         Text(
           'TEMPLATES',
           style: AppTypography.overline
-              .copyWith(color: AppColors.textTertiary),
+              .copyWith(color: colors.textTertiary),
         ),
         const SizedBox(height: AppSpacing.md),
         ..._templates.asMap().entries.map((e) => Padding(
@@ -690,13 +675,13 @@ class _PlansTabState extends ConsumerState<_PlansTab> {
                           Text(
                             e.value.desc,
                             style: AppTypography.caption.copyWith(
-                                color: AppColors.textTertiary),
+                                color: colors.textTertiary),
                           ),
                         ],
                       ),
                     ),
-                    const Icon(Icons.chevron_right_rounded,
-                        color: AppColors.textTertiary),
+                    Icon(Icons.chevron_right_rounded,
+                        color: colors.textTertiary),
                   ],
                 ),
               ).animate(delay: (e.key * 50).ms).fadeIn(duration: 300.ms),
@@ -707,10 +692,11 @@ class _PlansTabState extends ConsumerState<_PlansTab> {
 
   void _showPlanDetail(BuildContext context, WorkoutPlan plan,
       Map<String, dynamic> planData) {
+    final colors = context.colors;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.bgSecondary,
+      backgroundColor: colors.bgSecondary,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -730,7 +716,7 @@ class _PlansTabState extends ConsumerState<_PlansTab> {
                   height: 4,
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                    color: AppColors.surfaceCardBorder,
+                    color: colors.surfaceCardBorder,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -738,13 +724,13 @@ class _PlansTabState extends ConsumerState<_PlansTab> {
               Text(plan.name, style: AppTypography.h2),
               Text('${plan.weeks} weeks',
                   style: AppTypography.body
-                      .copyWith(color: AppColors.textTertiary)),
+                      .copyWith(color: colors.textTertiary)),
               const SizedBox(height: AppSpacing.sectionGap),
               for (final week in weeks) ...[
                 Text(
                   'Week ${week['week']}',
                   style: AppTypography.h3
-                      .copyWith(color: AppColors.cyan),
+                      .copyWith(color: colors.cyan),
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 for (final day in (week['days'] as List? ?? [])) ...[
@@ -773,7 +759,7 @@ class _PlansTabState extends ConsumerState<_PlansTab> {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: AppColors.lime
+                                  color: colors.lime
                                       .withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(
                                       AppRadius.full),
@@ -781,7 +767,7 @@ class _PlansTabState extends ConsumerState<_PlansTab> {
                                 child: Text(
                                   'Start',
                                   style: AppTypography.overline
-                                      .copyWith(color: AppColors.lime),
+                                      .copyWith(color: colors.lime),
                                 ),
                               ),
                             ),
@@ -795,7 +781,7 @@ class _PlansTabState extends ConsumerState<_PlansTab> {
                             child: Text(
                               '${ex['name']} · ${ex['sets']}×${ex['reps']}',
                               style: AppTypography.caption.copyWith(
-                                  color: AppColors.textSecondary),
+                                  color: colors.textSecondary),
                             ),
                           ),
                       ],
@@ -919,6 +905,7 @@ class _LibraryTabState extends ConsumerState<_LibraryTab> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.pagePadding),
       child: Column(
@@ -929,8 +916,8 @@ class _LibraryTabState extends ConsumerState<_LibraryTab> {
             decoration: InputDecoration(
               hintText:
                   'Search ${_exercises.length} exercises...',
-              prefixIcon: const Icon(Icons.search,
-                  color: AppColors.textTertiary, size: 20),
+              prefixIcon: Icon(Icons.search,
+                  color: colors.textTertiary, size: 20),
             ),
           ),
           const SizedBox(height: AppSpacing.md),
@@ -952,22 +939,22 @@ class _LibraryTabState extends ConsumerState<_LibraryTab> {
                         horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: selected
-                          ? AppColors.limeGlow
-                          : AppColors.surfaceCard,
+                          ? colors.limeGlow
+                          : colors.surfaceCard,
                       borderRadius:
                           BorderRadius.circular(AppRadius.full),
                       border: Border.all(
                         color: selected
-                            ? AppColors.lime
-                            : AppColors.surfaceCardBorder,
+                            ? colors.lime
+                            : colors.surfaceCardBorder,
                       ),
                     ),
                     child: Text(
                       label,
                       style: AppTypography.caption.copyWith(
                         color: selected
-                            ? AppColors.lime
-                            : AppColors.textSecondary,
+                            ? colors.lime
+                            : colors.textSecondary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -978,10 +965,10 @@ class _LibraryTabState extends ConsumerState<_LibraryTab> {
           ),
           const SizedBox(height: AppSpacing.md),
           if (_isLoading)
-            const Expanded(
+            Expanded(
               child: Center(
                   child: CircularProgressIndicator(
-                      color: AppColors.lime)),
+                      color: colors.lime)),
             )
           else
             Expanded(
@@ -1028,7 +1015,7 @@ class _LibraryTabState extends ConsumerState<_LibraryTab> {
                                 '${ex.muscleGroup} · ${ex.equipment}',
                                 style: AppTypography.caption
                                     .copyWith(
-                                        color: AppColors
+                                        color: colors
                                             .textTertiary),
                               ),
                             ],
@@ -1038,14 +1025,14 @@ class _LibraryTabState extends ConsumerState<_LibraryTab> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: AppColors.bgTertiary,
+                            color: colors.bgTertiary,
                             borderRadius: BorderRadius.circular(
                                 AppRadius.full),
                           ),
                           child: Text(
                             ex.category,
                             style: AppTypography.overline.copyWith(
-                                color: AppColors.textTertiary,
+                                color: colors.textTertiary,
                                 fontSize: 9),
                           ),
                         ),

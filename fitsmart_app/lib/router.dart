@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'features/auth/screens/login_screen.dart';
+import 'features/splash/screens/splash_screen.dart';
 import 'features/auth/screens/signup_screen.dart';
 import 'features/auth/screens/forgot_password_screen.dart';
 import 'features/onboarding/screens/onboarding_flow.dart';
@@ -46,7 +47,7 @@ class _GoRouterRefreshStream extends ChangeNotifier {
 
 final appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
-  initialLocation: '/login',
+  initialLocation: '/splash',
   refreshListenable: _GoRouterRefreshStream(AuthService.authStateChanges),
   observers: [
     FirebaseAnalyticsObserver(analytics: _analytics),
@@ -55,6 +56,7 @@ final appRouter = GoRouter(
     final loc = state.matchedLocation;
     final user = AuthService.currentUser;
     final isAuthRoute = loc == '/login' || loc == '/signup' || loc == '/forgot-password';
+    final isSplashRoute = loc == '/splash';
     final isOnboardingRoute = loc == '/onboarding';
 
     final onboardingDone =
@@ -62,7 +64,7 @@ final appRouter = GoRouter(
 
     // ── 1. No user at all → force to login ─────────────────────────
     if (user == null) {
-      return isAuthRoute ? null : '/login';
+      return (isAuthRoute || isSplashRoute) ? null : '/login';
     }
 
     // ── 2. Anonymous user ──────────────────────────────────────────
@@ -71,15 +73,29 @@ final appRouter = GoRouter(
         if (isAuthRoute || isOnboardingRoute) return '/dashboard';
         return null;
       }
-      // Not onboarded: allow onboarding & auth routes, but default
-      // to login (not onboarding) so a stale anonymous session
-      // doesn't trap the user.
+      // Try Firestore recovery (reinstall scenario)
+      final recovered =
+          await OnboardingNotifier.tryRestoreFromFirestore(user.uid);
+      if (recovered) {
+        if (isAuthRoute || isOnboardingRoute) return '/dashboard';
+        return null;
+      }
+      // Not onboarded: send to onboarding (they already chose guest).
+      // Auth routes still allowed so they can upgrade their account.
       if (isOnboardingRoute || isAuthRoute) return null;
-      return '/login';
+      return '/onboarding';
     }
 
     // ── 3. Real user (email/Google) ────────────────────────────────
     if (onboardingDone) {
+      if (isAuthRoute || isOnboardingRoute) return '/dashboard';
+      return null;
+    }
+
+    // Try Firestore recovery (reinstall scenario)
+    final recovered =
+        await OnboardingNotifier.tryRestoreFromFirestore(user.uid);
+    if (recovered) {
       if (isAuthRoute || isOnboardingRoute) return '/dashboard';
       return null;
     }
@@ -89,6 +105,12 @@ final appRouter = GoRouter(
     return '/onboarding';
   },
   routes: [
+    // Splash
+    GoRoute(
+      path: '/splash',
+      builder: (context, state) => const SplashScreen(),
+    ),
+
     // Auth routes
     GoRoute(
       path: '/login',

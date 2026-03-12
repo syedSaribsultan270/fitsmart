@@ -3,9 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../providers/onboarding_provider.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/theme_extensions.dart';
 import '../../../core/widgets/app_button.dart';
 import 'onboarding_flow.dart';
 
@@ -20,43 +20,48 @@ class StepDreamBody extends ConsumerStatefulWidget {
 class _StepDreamBodyState extends ConsumerState<StepDreamBody> {
   String? _selected;
 
-  static const _bodyTypes = [
-    _BodyType(
-      id: 'lean',
-      emoji: '🏃',
-      title: 'Lean',
-      subtitle: 'Low body fat, toned but not bulky',
-      bf: '8–15% BF',
-      color: AppColors.cyan,
-    ),
-    _BodyType(
-      id: 'athletic',
-      emoji: '🤸',
-      title: 'Athletic',
-      subtitle: 'Muscular, defined, performance-ready',
-      bf: '12–20% BF',
-      color: AppColors.lime,
-    ),
-    _BodyType(
-      id: 'bulk',
-      emoji: '💪',
-      title: 'Bulk',
-      subtitle: 'Maximum muscle mass, powerlifter build',
-      bf: '15–25% BF',
-      color: AppColors.coral,
-    ),
-  ];
+  static List<_BodyType> _bodyTypes(BuildContext context) {
+    final colors = context.colors;
+    return [
+      _BodyType(
+        id: 'lean',
+        emoji: '\uD83C\uDFC3',
+        title: 'Lean',
+        subtitle: 'Low body fat, toned but not bulky',
+        bf: '8\u201315% BF',
+        color: colors.cyan,
+      ),
+      _BodyType(
+        id: 'athletic',
+        emoji: '\uD83E\uDD38',
+        title: 'Athletic',
+        subtitle: 'Muscular, defined, performance-ready',
+        bf: '12\u201320% BF',
+        color: colors.lime,
+      ),
+      _BodyType(
+        id: 'bulk',
+        emoji: '\uD83D\uDCAA',
+        title: 'Bulk',
+        subtitle: 'Maximum muscle mass, powerlifter build',
+        bf: '15\u201325% BF',
+        color: colors.coral,
+      ),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
+    final bodyTypes = _bodyTypes(context);
+
     return OnboardingStepBase(
-      emoji: '🏆',
+      emoji: '\uD83C\uDFC6',
       title: 'Your Dream\nPhysique',
       subtitle: 'What body type are you working towards?',
       content: Column(
         children: [
           Row(
-            children: _bodyTypes.asMap().entries.map((e) {
+            children: bodyTypes.asMap().entries.map((e) {
               final bt = e.value;
               final isSelected = _selected == bt.id;
               return Expanded(
@@ -73,10 +78,10 @@ class _StepDreamBodyState extends ConsumerState<StepDreamBody> {
                       decoration: BoxDecoration(
                         color: isSelected
                             ? bt.color.withValues(alpha: 0.1)
-                            : AppColors.surfaceCard,
+                            : context.colors.surfaceCard,
                         borderRadius: BorderRadius.circular(AppRadius.lg),
                         border: Border.all(
-                          color: isSelected ? bt.color : AppColors.surfaceCardBorder,
+                          color: isSelected ? bt.color : context.colors.surfaceCardBorder,
                           width: isSelected ? 2 : 1,
                         ),
                         boxShadow: isSelected
@@ -93,7 +98,7 @@ class _StepDreamBodyState extends ConsumerState<StepDreamBody> {
                             decoration: BoxDecoration(
                               color: isSelected
                                   ? bt.color.withValues(alpha: 0.15)
-                                  : AppColors.bgTertiary,
+                                  : context.colors.bgTertiary,
                               shape: BoxShape.circle,
                             ),
                             child: Center(
@@ -108,7 +113,7 @@ class _StepDreamBodyState extends ConsumerState<StepDreamBody> {
                             bt.title,
                             style: AppTypography.bodyMedium.copyWith(
                               fontWeight: FontWeight.w700,
-                              color: isSelected ? bt.color : AppColors.textPrimary,
+                              color: isSelected ? bt.color : context.colors.textPrimary,
                             ),
                             textAlign: TextAlign.center,
                           ),
@@ -116,7 +121,7 @@ class _StepDreamBodyState extends ConsumerState<StepDreamBody> {
                           Text(
                             bt.subtitle,
                             style: AppTypography.overline.copyWith(
-                              color: AppColors.textTertiary,
+                              color: context.colors.textTertiary,
                               fontSize: 9,
                             ),
                             textAlign: TextAlign.center,
@@ -127,13 +132,13 @@ class _StepDreamBodyState extends ConsumerState<StepDreamBody> {
                             decoration: BoxDecoration(
                               color: isSelected
                                   ? bt.color.withValues(alpha: 0.15)
-                                  : AppColors.bgTertiary,
+                                  : context.colors.bgTertiary,
                               borderRadius: BorderRadius.circular(AppRadius.full),
                             ),
                             child: Text(
                               bt.bf,
                               style: AppTypography.overline.copyWith(
-                                color: isSelected ? bt.color : AppColors.textTertiary,
+                                color: isSelected ? bt.color : context.colors.textTertiary,
                                 fontSize: 9,
                               ),
                             ),
@@ -154,17 +159,17 @@ class _StepDreamBodyState extends ConsumerState<StepDreamBody> {
             Container(
               padding: const EdgeInsets.all(AppSpacing.cardPadding),
               decoration: BoxDecoration(
-                color: AppColors.bgTertiary,
+                color: context.colors.bgTertiary,
                 borderRadius: BorderRadius.circular(AppRadius.md),
-                border: Border.all(color: AppColors.surfaceCardBorder),
+                border: Border.all(color: context.colors.surfaceCardBorder),
               ),
               child: Text(
                 _selected == 'lean'
-                    ? '💡 Great choice! Lean builds prioritize cardio + moderate lifting with a calorie deficit.'
+                    ? '\uD83D\uDCA1 Great choice! Lean builds prioritize cardio + moderate lifting with a calorie deficit.'
                     : _selected == 'athletic'
-                        ? '💡 Athletic builds balance strength training with good nutrition timing.'
-                        : '💡 Bulk builds focus on progressive overload with a calorie surplus.',
-                style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+                        ? '\uD83D\uDCA1 Athletic builds balance strength training with good nutrition timing.'
+                        : '\uD83D\uDCA1 Bulk builds focus on progressive overload with a calorie surplus.',
+                style: AppTypography.caption.copyWith(color: context.colors.textSecondary),
               ),
             ).animate().fadeIn(duration: 300.ms),
         ],

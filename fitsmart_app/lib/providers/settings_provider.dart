@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -8,25 +9,38 @@ class AppSettings {
   final bool notificationsEnabled;
   final bool weeklyReportEnabled;
   final String displayName;
+  final ThemeMode themeMode;
+  final int? accentColorValue; // null = default lime
 
   const AppSettings({
     this.isMetric = true,
     this.notificationsEnabled = true,
     this.weeklyReportEnabled = false,
     this.displayName = 'FitSmart User',
+    this.themeMode = ThemeMode.system,
+    this.accentColorValue,
   });
+
+  Color? get accentColor =>
+      accentColorValue != null ? Color(accentColorValue!) : null;
 
   AppSettings copyWith({
     bool? isMetric,
     bool? notificationsEnabled,
     bool? weeklyReportEnabled,
     String? displayName,
+    ThemeMode? themeMode,
+    int? accentColorValue,
+    bool clearAccent = false,
   }) {
     return AppSettings(
       isMetric: isMetric ?? this.isMetric,
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
       weeklyReportEnabled: weeklyReportEnabled ?? this.weeklyReportEnabled,
       displayName: displayName ?? this.displayName,
+      themeMode: themeMode ?? this.themeMode,
+      accentColorValue:
+          clearAccent ? null : (accentColorValue ?? this.accentColorValue),
     );
   }
 
@@ -35,6 +49,8 @@ class AppSettings {
         'notificationsEnabled': notificationsEnabled,
         'weeklyReportEnabled': weeklyReportEnabled,
         'displayName': displayName,
+        'themeMode': themeMode.index,
+        'accentColorValue': accentColorValue,
       };
 
   factory AppSettings.fromJson(Map<String, dynamic> json) {
@@ -43,6 +59,11 @@ class AppSettings {
       notificationsEnabled: json['notificationsEnabled'] ?? true,
       weeklyReportEnabled: json['weeklyReportEnabled'] ?? false,
       displayName: json['displayName'] ?? 'FitSmart User',
+      themeMode: ThemeMode
+              .values
+              .elementAtOrNull(json['themeMode'] as int? ?? 0) ??
+          ThemeMode.system,
+      accentColorValue: json['accentColorValue'] as int?,
     );
   }
 }
@@ -82,6 +103,20 @@ class SettingsNotifier extends StateNotifier<AppSettings> {
 
   Future<void> setDisplayName(String name) async {
     state = state.copyWith(displayName: name);
+    await _save();
+  }
+
+  Future<void> setThemeMode(ThemeMode mode) async {
+    state = state.copyWith(themeMode: mode);
+    await _save();
+  }
+
+  Future<void> setAccentColor(Color? color) async {
+    if (color == null) {
+      state = state.copyWith(clearAccent: true);
+    } else {
+      state = state.copyWith(accentColorValue: color.toARGB32());
+    }
     await _save();
   }
 }

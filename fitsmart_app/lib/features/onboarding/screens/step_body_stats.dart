@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/onboarding_provider.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/theme_extensions.dart';
 import '../../../core/widgets/app_button.dart';
 import 'onboarding_flow.dart';
 
@@ -41,7 +41,7 @@ class _StepBodyStatsState extends ConsumerState<StepBodyStats> {
   @override
   Widget build(BuildContext context) {
     return OnboardingStepBase(
-      emoji: '📏',
+      emoji: '\uD83D\uDCCF',
       title: 'Your Current\nStats',
       subtitle: 'Used to calculate your personalized calorie targets.',
       content: Column(
@@ -133,9 +133,9 @@ class _StatSection extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.cardPadding),
       decoration: BoxDecoration(
-        color: AppColors.surfaceCard,
+        color: context.colors.surfaceCard,
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.surfaceCardBorder),
+        border: Border.all(color: context.colors.surfaceCardBorder),
       ),
       child: Column(
         children: [
@@ -145,7 +145,7 @@ class _StatSection extends StatelessWidget {
               Text(
                 label,
                 style: AppTypography.overline.copyWith(
-                  color: AppColors.textTertiary,
+                  color: context.colors.textTertiary,
                 ),
               ),
               // Unit toggle
@@ -154,24 +154,24 @@ class _StatSection extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: AppColors.bgTertiary,
+                    color: context.colors.bgTertiary,
                     borderRadius: BorderRadius.circular(AppRadius.full),
-                    border: Border.all(color: AppColors.surfaceCardBorder),
+                    border: Border.all(color: context.colors.surfaceCardBorder),
                   ),
                   child: Row(
                     children: [
                       Text(
                         unit1,
                         style: AppTypography.overline.copyWith(
-                          color: !useSecondUnit ? AppColors.lime : AppColors.textTertiary,
+                          color: !useSecondUnit ? context.colors.lime : context.colors.textTertiary,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                      Text(' / ', style: AppTypography.overline.copyWith(color: AppColors.textTertiary)),
+                      Text(' / ', style: AppTypography.overline.copyWith(color: context.colors.textTertiary)),
                       Text(
                         unit2,
                         style: AppTypography.overline.copyWith(
-                          color: useSecondUnit ? AppColors.lime : AppColors.textTertiary,
+                          color: useSecondUnit ? context.colors.lime : context.colors.textTertiary,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -185,7 +185,7 @@ class _StatSection extends StatelessWidget {
           Text(
             displayValue,
             style: AppTypography.h1.copyWith(
-              color: AppColors.lime,
+              color: context.colors.lime,
               fontWeight: FontWeight.w800,
             ),
           ),

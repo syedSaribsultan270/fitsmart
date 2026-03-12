@@ -6,12 +6,22 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../../data/database/app_database.dart';
 import '../../../data/database/database_provider.dart';
 import '../../../features/dashboard/providers/dashboard_provider.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_colors_extension.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/theme_extensions.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../../providers/settings_provider.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/firestore_service.dart';
+
+// Conversion helpers — DB stores kg/cm, display converts if imperial
+double _kgToDisplay(double kg, bool isMetric) => isMetric ? kg : kg * 2.20462;
+double _displayToKg(double val, bool isMetric) => isMetric ? val : val / 2.20462;
+double _cmToDisplay(double cm, bool isMetric) => isMetric ? cm : cm / 2.54;
+double _displayToCm(double val, bool isMetric) => isMetric ? val : val * 2.54;
+String _weightUnit(bool isMetric) => isMetric ? 'kg' : 'lbs';
+String _lengthUnit(bool isMetric) => isMetric ? 'cm' : 'in';
 
 class ProgressScreen extends StatefulWidget {
   const ProgressScreen({super.key});
@@ -38,16 +48,17 @@ class _ProgressScreenState extends State<ProgressScreen>
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
+      backgroundColor: colors.bgPrimary,
       appBar: AppBar(
         title: const Text('Progress'),
         bottom: TabBar(
           controller: _tabs,
-          indicatorColor: AppColors.lime,
+          indicatorColor: colors.lime,
           indicatorWeight: 2,
-          labelColor: AppColors.lime,
-          unselectedLabelColor: AppColors.textTertiary,
+          labelColor: colors.lime,
+          unselectedLabelColor: colors.textTertiary,
           isScrollable: true,
           labelStyle: AppTypography.overline,
           tabs: const [
@@ -81,12 +92,12 @@ class _WeightTab extends ConsumerStatefulWidget {
 class _WeightTabState extends ConsumerState<_WeightTab> {
   int _rangeDays = 30; // 7 = week, 30 = month, 0 = all
 
-  static List<FlSpot> _toSpots(List<WeightLog> logs) {
+  static List<FlSpot> _toSpots(List<WeightLog> logs, bool isMetric) {
     if (logs.isEmpty) return [];
     // logs are newest-first; reverse for chart (oldest left)
     final sorted = logs.reversed.toList();
     return sorted.asMap().entries
-        .map((e) => FlSpot(e.key.toDouble(), e.value.weightKg))
+        .map((e) => FlSpot(e.key.toDouble(), _kgToDisplay(e.value.weightKg, isMetric)))
         .toList();
   }
 
@@ -103,35 +114,38 @@ class _WeightTabState extends ConsumerState<_WeightTab> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+    final isMetric = ref.watch(settingsProvider).isMetric;
+    final unit = _weightUnit(isMetric);
     final weightAsync = ref.watch(filteredWeightProvider(_rangeDays));
     final profile = ref.watch(userProfileProvider).valueOrNull;
     if (weightAsync.isLoading && !weightAsync.hasValue) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.lime));
+      return Center(child: CircularProgressIndicator(color: colors.lime));
     }
     if (weightAsync.hasError && !weightAsync.hasValue) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Couldn\'t load weight data', style: AppTypography.body.copyWith(color: AppColors.textTertiary)),
+            Text('Couldn\'t load weight data', style: AppTypography.body.copyWith(color: colors.textTertiary)),
             const SizedBox(height: AppSpacing.sm),
             TextButton(
               onPressed: () => ref.invalidate(filteredWeightProvider(_rangeDays)),
-              child: Text('Retry', style: AppTypography.bodyMedium.copyWith(color: AppColors.lime)),
+              child: Text('Retry', style: AppTypography.bodyMedium.copyWith(color: colors.lime)),
             ),
           ],
         ),
       );
     }
     final logs = weightAsync.valueOrNull ?? [];
-    final spots = _toSpots(logs);
+    final spots = _toSpots(logs, isMetric);
     final avgSpots = _movingAvg(spots);
 
-    final currentWeight = logs.isNotEmpty ? logs.first.weightKg : null;
-    final targetWeight = profile?.targetWeightKg;
+    final currentWeight = logs.isNotEmpty ? _kgToDisplay(logs.first.weightKg, isMetric) : null;
+    final targetWeight = profile?.targetWeightKg != null ? _kgToDisplay(profile!.targetWeightKg!, isMetric) : null;
     final weekLogs = logs.take(7).toList();
     final weekDelta = weekLogs.length >= 2
-        ? weekLogs.first.weightKg - weekLogs.last.weightKg
+        ? _kgToDisplay(weekLogs.first.weightKg, isMetric) - _kgToDisplay(weekLogs.last.weightKg, isMetric)
         : null;
 
     // Chart y-axis bounds
@@ -152,12 +166,12 @@ class _WeightTabState extends ConsumerState<_WeightTab> {
               child: _StatCard(
                 label: 'CURRENT',
                 value: currentWeight != null
-                    ? '${currentWeight.toStringAsFixed(1)} kg'
-                    : '— kg',
+                    ? '${currentWeight.toStringAsFixed(1)} $unit'
+                    : '— $unit',
                 sub: weekDelta != null
                     ? '${weekDelta >= 0 ? '+' : ''}${weekDelta.toStringAsFixed(1)} this week'
                     : 'No data yet',
-                color: AppColors.lime,
+                color: colors.lime,
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -165,12 +179,12 @@ class _WeightTabState extends ConsumerState<_WeightTab> {
               child: _StatCard(
                 label: 'GOAL',
                 value: targetWeight != null
-                    ? '${targetWeight.toStringAsFixed(1)} kg'
-                    : '— kg',
+                    ? '${targetWeight.toStringAsFixed(1)} $unit'
+                    : '— $unit',
                 sub: (currentWeight != null && targetWeight != null)
-                    ? '${(currentWeight - targetWeight).abs().toStringAsFixed(1)} kg to go'
+                    ? '${(currentWeight - targetWeight).abs().toStringAsFixed(1)} $unit to go'
                     : 'Set in onboarding',
-                color: AppColors.cyan,
+                color: colors.cyan,
               ),
             ),
           ],
@@ -189,21 +203,21 @@ class _WeightTabState extends ConsumerState<_WeightTab> {
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                     decoration: BoxDecoration(
                       color: _rangeDays == r.days
-                          ? AppColors.limeGlow
-                          : AppColors.surfaceCard,
+                          ? colors.limeGlow
+                          : colors.surfaceCard,
                       borderRadius: BorderRadius.circular(AppRadius.full),
                       border: Border.all(
                         color: _rangeDays == r.days
-                            ? AppColors.lime
-                            : AppColors.surfaceCardBorder,
+                            ? colors.lime
+                            : colors.surfaceCardBorder,
                       ),
                     ),
                     child: Text(
                       r.label,
                       style: AppTypography.overline.copyWith(
                         color: _rangeDays == r.days
-                            ? AppColors.lime
-                            : AppColors.textSecondary,
+                            ? colors.lime
+                            : colors.textSecondary,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -225,15 +239,15 @@ class _WeightTabState extends ConsumerState<_WeightTab> {
                   Text(
                     'WEIGHT TREND',
                     style: AppTypography.overline
-                        .copyWith(color: AppColors.textTertiary),
+                        .copyWith(color: colors.textTertiary),
                   ),
                   if (spots.isNotEmpty)
                     Row(
                       children: [
                         _Legend(
-                            color: AppColors.surfaceCardBorder, label: 'Daily'),
+                            color: colors.surfaceCardBorder, label: 'Daily'),
                         const SizedBox(width: AppSpacing.sm),
-                        _Legend(color: AppColors.lime, label: '7d avg'),
+                        _Legend(color: colors.lime, label: '7d avg'),
                       ],
                     ),
                 ],
@@ -252,7 +266,7 @@ class _WeightTabState extends ConsumerState<_WeightTab> {
                         Text(
                           'Log your weight to see trends',
                           style: AppTypography.bodyMedium.copyWith(
-                              color: AppColors.textTertiary),
+                              color: colors.textTertiary),
                         ),
                       ],
                     ),
@@ -269,7 +283,7 @@ class _WeightTabState extends ConsumerState<_WeightTab> {
                         drawVerticalLine: false,
                         horizontalInterval: 1,
                         getDrawingHorizontalLine: (_) => FlLine(
-                          color: AppColors.surfaceCardBorder,
+                          color: colors.surfaceCardBorder,
                           strokeWidth: 1,
                         ),
                       ),
@@ -310,14 +324,14 @@ class _WeightTabState extends ConsumerState<_WeightTab> {
                         LineChartBarData(
                           spots: spots,
                           isCurved: false,
-                          color: AppColors.surfaceCardBorder,
+                          color: colors.surfaceCardBorder,
                           barWidth: 1,
                           dotData: FlDotData(
                             show: true,
                             getDotPainter: (_, __, ___, ____) =>
                                 FlDotCirclePainter(
                               radius: 2,
-                              color: AppColors.surfaceCardBorder,
+                              color: colors.surfaceCardBorder,
                               strokeWidth: 0,
                             ),
                           ),
@@ -326,7 +340,7 @@ class _WeightTabState extends ConsumerState<_WeightTab> {
                           LineChartBarData(
                             spots: avgSpots,
                             isCurved: true,
-                            color: AppColors.lime,
+                            color: colors.lime,
                             barWidth: 2.5,
                             dotData:
                                 const FlDotData(show: false),
@@ -334,9 +348,9 @@ class _WeightTabState extends ConsumerState<_WeightTab> {
                               show: true,
                               gradient: LinearGradient(
                                 colors: [
-                                  AppColors.lime
+                                  colors.lime
                                       .withValues(alpha: 0.15),
-                                  AppColors.lime
+                                  colors.lime
                                       .withValues(alpha: 0.0),
                                 ],
                                 begin: Alignment.topCenter,
@@ -361,20 +375,20 @@ class _WeightTabState extends ConsumerState<_WeightTab> {
           child: Container(
             padding: const EdgeInsets.all(AppSpacing.cardPadding),
             decoration: BoxDecoration(
-              color: AppColors.limeGlow,
+              color: colors.limeGlow,
               borderRadius: BorderRadius.circular(AppRadius.lg),
               border:
-                  Border.all(color: AppColors.lime.withValues(alpha: 0.3)),
+                  Border.all(color: colors.lime.withValues(alpha: 0.3)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.add_rounded, color: AppColors.lime),
+                Icon(Icons.add_rounded, color: colors.lime),
                 const SizedBox(width: AppSpacing.sm),
                 Text(
                   'Log Today\'s Weight',
                   style: AppTypography.bodyMedium.copyWith(
-                    color: AppColors.lime,
+                    color: colors.lime,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -388,6 +402,8 @@ class _WeightTabState extends ConsumerState<_WeightTab> {
 
   void _showLogWeight(BuildContext context) {
     final ctrl = TextEditingController();
+    final isMetric = ref.read(settingsProvider).isMetric;
+    final unit = _weightUnit(isMetric);
     bool isSaving = false;
     showModalBottomSheet(
       context: context,
@@ -411,10 +427,10 @@ class _WeightTabState extends ConsumerState<_WeightTab> {
                 autofocus: true,
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
-                style: AppTypography.h2.copyWith(color: AppColors.lime),
-                decoration: const InputDecoration(
+                style: AppTypography.h2.copyWith(color: context.colors.lime),
+                decoration: InputDecoration(
                   hintText: '0.0',
-                  suffixText: 'kg',
+                  suffixText: unit,
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
@@ -422,8 +438,9 @@ class _WeightTabState extends ConsumerState<_WeightTab> {
                 onPressed: isSaving
                     ? null
                     : () async {
-                        final val = double.tryParse(ctrl.text.trim());
-                        if (val == null || val <= 0) return;
+                        final rawVal = double.tryParse(ctrl.text.trim());
+                        if (rawVal == null || rawVal <= 0) return;
+                        final val = _displayToKg(rawVal, isMetric);
                         setSheetState(() => isSaving = true);
                         try {
                           final db = ref.read(databaseProvider);
@@ -437,7 +454,7 @@ class _WeightTabState extends ConsumerState<_WeightTab> {
                             FirestoreService.addWeightLog(uid, {
                               'weightKg': val,
                               'loggedAt': DateTime.now().toIso8601String(),
-                            }).catchError((_) => '');
+                            }).catchError((e) { debugPrint('[Firestore] weight sync failed: $e'); });
                           }
                           await ref
                               .read(gamificationProvider.notifier)
@@ -445,9 +462,9 @@ class _WeightTabState extends ConsumerState<_WeightTab> {
                           if (context.mounted) {
                             Navigator.pop(context);
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Weight logged! +5 XP ⚡'),
-                                backgroundColor: AppColors.success,
+                              SnackBar(
+                                content: const Text('Weight logged! +5 XP ⚡'),
+                                backgroundColor: context.colors.success,
                               ),
                             );
                           }
@@ -457,7 +474,7 @@ class _WeightTabState extends ConsumerState<_WeightTab> {
                             ScaffoldMessenger.of(sheetCtx).showSnackBar(
                               SnackBar(
                                 content: Text('Failed to save: $e'),
-                                backgroundColor: AppColors.error,
+                                backgroundColor: sheetCtx.colors.error,
                               ),
                             );
                           }
@@ -483,20 +500,23 @@ class _WeightTabState extends ConsumerState<_WeightTab> {
 class _StrengthTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colors = context.colors;
+    final isMetric = ref.watch(settingsProvider).isMetric;
+    final unit = _weightUnit(isMetric);
     final prsAsync = ref.watch(personalRecordsProvider);
     if (prsAsync.isLoading && !prsAsync.hasValue) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.lime));
+      return Center(child: CircularProgressIndicator(color: colors.lime));
     }
     if (prsAsync.hasError && !prsAsync.hasValue) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Couldn\'t load PRs', style: AppTypography.body.copyWith(color: AppColors.textTertiary)),
+            Text('Couldn\'t load PRs', style: AppTypography.body.copyWith(color: colors.textTertiary)),
             const SizedBox(height: AppSpacing.sm),
             TextButton(
               onPressed: () => ref.invalidate(personalRecordsProvider),
-              child: Text('Retry', style: AppTypography.bodyMedium.copyWith(color: AppColors.lime)),
+              child: Text('Retry', style: AppTypography.bodyMedium.copyWith(color: colors.lime)),
             ),
           ],
         ),
@@ -515,12 +535,12 @@ class _StrengthTab extends ConsumerWidget {
               const SizedBox(height: AppSpacing.md),
               Text(
                 'No PRs yet',
-                style: AppTypography.h3.copyWith(color: AppColors.textTertiary),
+                style: AppTypography.h3.copyWith(color: colors.textTertiary),
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(
                 'Complete workouts to see your personal records here.',
-                style: AppTypography.body.copyWith(color: AppColors.textTertiary),
+                style: AppTypography.body.copyWith(color: colors.textTertiary),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -550,14 +570,14 @@ class _StrengthTab extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(name, style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w700)),
-                      Text('Personal Record', style: AppTypography.caption.copyWith(color: AppColors.textTertiary)),
+                      Text('Personal Record', style: AppTypography.caption.copyWith(color: colors.textTertiary)),
                     ],
                   ),
                 ),
                 Text(
-                  '${weight.toStringAsFixed(1)} kg',
+                  '${_kgToDisplay(weight, isMetric).toStringAsFixed(1)} $unit',
                   style: AppTypography.h3.copyWith(
-                    color: AppColors.lime,
+                    color: colors.lime,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -573,20 +593,23 @@ class _StrengthTab extends ConsumerWidget {
 class _BodyTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colors = context.colors;
+    final isMetric = ref.watch(settingsProvider).isMetric;
+    final unit = _lengthUnit(isMetric);
     final measurementAsync = ref.watch(latestMeasurementProvider);
     if (measurementAsync.isLoading && !measurementAsync.hasValue) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.lime));
+      return Center(child: CircularProgressIndicator(color: colors.lime));
     }
     if (measurementAsync.hasError && !measurementAsync.hasValue) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Couldn\'t load measurements', style: AppTypography.body.copyWith(color: AppColors.textTertiary)),
+            Text('Couldn\'t load measurements', style: AppTypography.body.copyWith(color: colors.textTertiary)),
             const SizedBox(height: AppSpacing.sm),
             TextButton(
               onPressed: () => ref.invalidate(latestMeasurementProvider),
-              child: Text('Retry', style: AppTypography.bodyMedium.copyWith(color: AppColors.lime)),
+              child: Text('Retry', style: AppTypography.bodyMedium.copyWith(color: colors.lime)),
             ),
           ],
         ),
@@ -596,14 +619,15 @@ class _BodyTab extends ConsumerWidget {
 
     final entries = <(String, String)>[];
     if (measurement != null) {
-      if (measurement.chestCm != null) entries.add(('Chest', '${measurement.chestCm!.toStringAsFixed(1)} cm'));
-      if (measurement.waistCm != null) entries.add(('Waist', '${measurement.waistCm!.toStringAsFixed(1)} cm'));
-      if (measurement.hipsCm != null) entries.add(('Hips', '${measurement.hipsCm!.toStringAsFixed(1)} cm'));
-      if (measurement.bicepCm != null) entries.add(('Bicep', '${measurement.bicepCm!.toStringAsFixed(1)} cm'));
-      if (measurement.thighCm != null) entries.add(('Thigh', '${measurement.thighCm!.toStringAsFixed(1)} cm'));
-      if (measurement.neckCm != null) entries.add(('Neck', '${measurement.neckCm!.toStringAsFixed(1)} cm'));
-      if (measurement.shouldersCm != null) entries.add(('Shoulders', '${measurement.shouldersCm!.toStringAsFixed(1)} cm'));
-      if (measurement.calfCm != null) entries.add(('Calf', '${measurement.calfCm!.toStringAsFixed(1)} cm'));
+      String fmt(double cm) => '${_cmToDisplay(cm, isMetric).toStringAsFixed(1)} $unit';
+      if (measurement.chestCm != null) entries.add(('Chest', fmt(measurement.chestCm!)));
+      if (measurement.waistCm != null) entries.add(('Waist', fmt(measurement.waistCm!)));
+      if (measurement.hipsCm != null) entries.add(('Hips', fmt(measurement.hipsCm!)));
+      if (measurement.bicepCm != null) entries.add(('Bicep', fmt(measurement.bicepCm!)));
+      if (measurement.thighCm != null) entries.add(('Thigh', fmt(measurement.thighCm!)));
+      if (measurement.neckCm != null) entries.add(('Neck', fmt(measurement.neckCm!)));
+      if (measurement.shouldersCm != null) entries.add(('Shoulders', fmt(measurement.shouldersCm!)));
+      if (measurement.calfCm != null) entries.add(('Calf', fmt(measurement.calfCm!)));
     }
 
     return ListView(
@@ -613,7 +637,7 @@ class _BodyTab extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('MEASUREMENTS', style: AppTypography.overline.copyWith(color: AppColors.textTertiary)),
+              Text('MEASUREMENTS', style: AppTypography.overline.copyWith(color: colors.textTertiary)),
               const SizedBox(height: AppSpacing.md),
               if (entries.isEmpty)
                 Center(
@@ -625,7 +649,7 @@ class _BodyTab extends ConsumerWidget {
                         const SizedBox(height: AppSpacing.sm),
                         Text(
                           'No measurements logged yet',
-                          style: AppTypography.bodyMedium.copyWith(color: AppColors.textTertiary),
+                          style: AppTypography.bodyMedium.copyWith(color: colors.textTertiary),
                         ),
                       ],
                     ),
@@ -637,12 +661,12 @@ class _BodyTab extends ConsumerWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(m.$1, style: AppTypography.body.copyWith(color: AppColors.textSecondary)),
+                      Text(m.$1, style: AppTypography.body.copyWith(color: colors.textSecondary)),
                       Text(
                         m.$2,
                         style: AppTypography.bodyMedium.copyWith(
                           fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
+                          color: colors.textPrimary,
                         ),
                       ),
                     ],
@@ -653,7 +677,7 @@ class _BodyTab extends ConsumerWidget {
                   padding: const EdgeInsets.only(top: AppSpacing.sm),
                   child: Text(
                     'Last updated: ${_formatDate(measurement.measuredAt)}',
-                    style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+                    style: AppTypography.caption.copyWith(color: colors.textTertiary),
                   ),
                 ),
             ],
@@ -665,19 +689,19 @@ class _BodyTab extends ConsumerWidget {
           child: Container(
             padding: const EdgeInsets.all(AppSpacing.cardPadding),
             decoration: BoxDecoration(
-              color: AppColors.limeGlow,
+              color: colors.limeGlow,
               borderRadius: BorderRadius.circular(AppRadius.lg),
-              border: Border.all(color: AppColors.lime.withValues(alpha: 0.3)),
+              border: Border.all(color: colors.lime.withValues(alpha: 0.3)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.straighten_rounded, color: AppColors.lime),
+                Icon(Icons.straighten_rounded, color: colors.lime),
                 const SizedBox(width: AppSpacing.sm),
                 Text(
                   'Update Measurements',
                   style: AppTypography.bodyMedium.copyWith(
-                    color: AppColors.lime,
+                    color: colors.lime,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -695,6 +719,8 @@ class _BodyTab extends ConsumerWidget {
   }
 
   void _showLogMeasurements(BuildContext context, WidgetRef ref) {
+    final isMetric = ref.read(settingsProvider).isMetric;
+    final unit = _lengthUnit(isMetric);
     final ctrls = {
       'Chest': TextEditingController(),
       'Waist': TextEditingController(),
@@ -723,7 +749,7 @@ class _BodyTab extends ConsumerWidget {
             children: [
               Text('Log Measurements', style: AppTypography.h3),
               const SizedBox(height: AppSpacing.sm),
-              Text('Leave blank to skip (cm)', style: AppTypography.caption.copyWith(color: AppColors.textTertiary)),
+              Text('Leave blank to skip ($unit)', style: AppTypography.caption.copyWith(color: context.colors.textTertiary)),
               const SizedBox(height: AppSpacing.md),
               ...ctrls.entries.map((e) => Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.sm),
@@ -732,7 +758,7 @@ class _BodyTab extends ConsumerWidget {
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   decoration: InputDecoration(
                     labelText: e.key,
-                    suffixText: 'cm',
+                    suffixText: unit,
                     isDense: true,
                   ),
                 ),
@@ -742,7 +768,9 @@ class _BodyTab extends ConsumerWidget {
                 onPressed: () async {
                   double? parse(String key) {
                     final t = ctrls[key]!.text.trim();
-                    return t.isEmpty ? null : double.tryParse(t);
+                    if (t.isEmpty) return null;
+                    final v = double.tryParse(t);
+                    return v != null ? _displayToCm(v, isMetric) : null;
                   }
                   final db = ref.read(databaseProvider);
                   await db.insertMeasurement(BodyMeasurementsCompanion(
@@ -761,9 +789,9 @@ class _BodyTab extends ConsumerWidget {
                   if (context.mounted) {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Measurements saved! +10 XP ⚡'),
-                        backgroundColor: AppColors.success,
+                      SnackBar(
+                        content: const Text('Measurements saved! +10 XP ⚡'),
+                        backgroundColor: context.colors.success,
                       ),
                     );
                   }
@@ -782,20 +810,21 @@ class _BodyTab extends ConsumerWidget {
 class _StatsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colors = context.colors;
     final statsAsync = ref.watch(allTimeStatsProvider);
     if (statsAsync.isLoading && !statsAsync.hasValue) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.lime));
+      return Center(child: CircularProgressIndicator(color: colors.lime));
     }
     if (statsAsync.hasError && !statsAsync.hasValue) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Couldn\'t load stats', style: AppTypography.body.copyWith(color: AppColors.textTertiary)),
+            Text('Couldn\'t load stats', style: AppTypography.body.copyWith(color: colors.textTertiary)),
             const SizedBox(height: AppSpacing.sm),
             TextButton(
               onPressed: () => ref.invalidate(allTimeStatsProvider),
-              child: Text('Retry', style: AppTypography.bodyMedium.copyWith(color: AppColors.lime)),
+              child: Text('Retry', style: AppTypography.bodyMedium.copyWith(color: colors.lime)),
             ),
           ],
         ),
@@ -814,7 +843,7 @@ class _StatsTab extends ConsumerWidget {
                 label: 'TOTAL MEALS',
                 value: '${stats['meals']}',
                 sub: 'Meals logged',
-                color: AppColors.lime,
+                color: colors.lime,
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -823,7 +852,7 @@ class _StatsTab extends ConsumerWidget {
                 label: 'WORKOUTS',
                 value: '${stats['workouts']}',
                 sub: 'Sessions completed',
-                color: AppColors.cyan,
+                color: colors.cyan,
               ),
             ),
           ],
@@ -836,7 +865,7 @@ class _StatsTab extends ConsumerWidget {
                 label: 'TOTAL XP',
                 value: '${stats['totalXp']}',
                 sub: 'Level ${stats['level']}',
-                color: AppColors.coral,
+                color: colors.coral,
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -845,7 +874,7 @@ class _StatsTab extends ConsumerWidget {
                 label: 'STREAK',
                 value: '${stats['streak']}',
                 sub: 'Day${(stats['streak'] as int) == 1 ? '' : 's'} streak',
-                color: AppColors.warning,
+                color: colors.warning,
               ),
             ),
           ],
@@ -858,7 +887,7 @@ class _StatsTab extends ConsumerWidget {
                 label: 'BADGES',
                 value: '${stats['badges']}',
                 sub: 'Unlocked',
-                color: AppColors.macroFiber,
+                color: AppColorsExtension.macroFiber,
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -885,14 +914,15 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: AppTypography.overline.copyWith(color: AppColors.textTertiary)),
+          Text(label, style: AppTypography.overline.copyWith(color: colors.textTertiary)),
           const SizedBox(height: AppSpacing.sm),
           Text(value, style: AppTypography.h2.copyWith(color: color, fontWeight: FontWeight.w800)),
-          Text(sub, style: AppTypography.caption.copyWith(color: AppColors.textTertiary)),
+          Text(sub, style: AppTypography.caption.copyWith(color: colors.textTertiary)),
         ],
       ),
     );

@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/theme_extensions.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../features/dashboard/providers/dashboard_provider.dart';
 import '../../../providers/auth_provider.dart';
@@ -32,7 +32,7 @@ class SettingsScreen extends ConsumerWidget {
     final photoUrl = isGuest ? null : user.photoURL;
 
     return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
+      backgroundColor: context.colors.bgPrimary,
       appBar: AppBar(
         title: Text('Settings', style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w700)),
         leading: IconButton(
@@ -51,12 +51,12 @@ class SettingsScreen extends ConsumerWidget {
                   Container(
                     width: 56,
                     height: 56,
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: AppColors.bgTertiary,
+                      color: context.colors.bgTertiary,
                     ),
-                    child: const Center(
-                      child: Icon(Icons.person_outline_rounded, color: AppColors.textTertiary, size: 28),
+                    child: Center(
+                      child: Icon(Icons.person_outline_rounded, color: context.colors.textTertiary, size: 28),
                     ),
                   ),
                   const SizedBox(height: AppSpacing.sm),
@@ -64,7 +64,7 @@ class SettingsScreen extends ConsumerWidget {
                   const SizedBox(height: 4),
                   Text(
                     'Sign in to sync your data across devices',
-                    style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+                    style: AppTypography.caption.copyWith(color: context.colors.textTertiary),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: AppSpacing.md),
@@ -73,7 +73,7 @@ class SettingsScreen extends ConsumerWidget {
                     child: ElevatedButton(
                       onPressed: () => context.go('/login'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.lime,
+                        backgroundColor: context.colors.lime,
                         foregroundColor: Colors.black,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
                         padding: const EdgeInsets.symmetric(vertical: 12),
@@ -89,22 +89,27 @@ class SettingsScreen extends ConsumerWidget {
               child: Row(
                 children: [
                   if (photoUrl != null && photoUrl.isNotEmpty)
-                    CircleAvatar(radius: 28, backgroundImage: NetworkImage(photoUrl))
+                    CircleAvatar(
+                      radius: 28,
+                      backgroundImage: NetworkImage(photoUrl),
+                      onBackgroundImageError: (_, __) {},
+                      child: null,
+                    )
                   else
                     Container(
                       width: 56,
                       height: 56,
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         gradient: LinearGradient(
-                          colors: [AppColors.lime, AppColors.cyan],
+                          colors: [context.colors.lime, context.colors.cyan],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                       ),
                       child: Center(
                         child: Text(
-                          displayName.isNotEmpty ? displayName[0].toUpperCase() : '⚡',
+                          displayName.isNotEmpty ? displayName[0].toUpperCase() : '',
                           style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: Colors.black),
                         ),
                       ),
@@ -117,20 +122,20 @@ class SettingsScreen extends ConsumerWidget {
                         Text(displayName, style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w700)),
                         if (email != null) ...[
                           const SizedBox(height: 2),
-                          Text(email, style: AppTypography.caption.copyWith(color: AppColors.textSecondary)),
+                          Text(email, style: AppTypography.caption.copyWith(color: context.colors.textSecondary)),
                         ],
                         const SizedBox(height: 4),
                         Text(
                           'Level ${gamification.currentLevel} · ${gamification.levelName}',
-                          style: AppTypography.caption.copyWith(color: AppColors.lime),
+                          style: AppTypography.caption.copyWith(color: context.colors.lime),
                         ),
                         const SizedBox(height: 4),
                         ClipRRect(
                           borderRadius: BorderRadius.circular(AppRadius.full),
                           child: LinearProgressIndicator(
                             value: gamification.levelProgress,
-                            backgroundColor: AppColors.surfaceCard,
-                            valueColor: const AlwaysStoppedAnimation(AppColors.lime),
+                            backgroundColor: context.colors.surfaceCard,
+                            valueColor: AlwaysStoppedAnimation(context.colors.lime),
                             minHeight: 4,
                           ),
                         ),
@@ -179,7 +184,7 @@ class SettingsScreen extends ConsumerWidget {
             trailing: Switch(
               value: settings.notificationsEnabled,
               onChanged: (v) => ref.read(settingsProvider.notifier).setNotifications(v),
-              activeThumbColor: AppColors.lime,
+              activeThumbColor: context.colors.lime,
             ),
           ),
           _SettingsTile(
@@ -189,13 +194,38 @@ class SettingsScreen extends ConsumerWidget {
             onTap: () => _showUnitsDialog(context, ref),
           ),
           _SettingsTile(
+            icon: Icons.dark_mode_outlined,
+            label: 'Theme',
+            subtitle: switch (settings.themeMode) {
+              ThemeMode.system => 'System default',
+              ThemeMode.dark => 'Dark',
+              ThemeMode.light => 'Light',
+            },
+            onTap: () => _showThemeDialog(context, ref),
+          ),
+          _SettingsTile(
+            icon: Icons.palette_outlined,
+            label: 'Accent Color',
+            subtitle: 'Customize app accent',
+            trailing: Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: settings.accentColor ?? context.colors.lime,
+                border: Border.all(color: context.colors.surfaceCardBorder, width: 1.5),
+              ),
+            ),
+            onTap: () => _showAccentColorPicker(context, ref),
+          ),
+          _SettingsTile(
             icon: Icons.bar_chart_rounded,
             label: 'Weekly Report',
             subtitle: 'Every Sunday recap email',
             trailing: Switch(
               value: settings.weeklyReportEnabled,
               onChanged: (v) => ref.read(settingsProvider.notifier).setWeeklyReport(v),
-              activeThumbColor: AppColors.lime,
+              activeThumbColor: context.colors.lime,
             ),
           ),
 
@@ -259,11 +289,11 @@ class SettingsScreen extends ConsumerWidget {
               children: [
                 Text(
                   'FitSmart AI',
-                  style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+                  style: AppTypography.caption.copyWith(color: context.colors.textTertiary),
                 ),
                 Text(
-                  'v1.0.0 · Built with ❤️',
-                  style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+                  'v1.0.0 · Built with \u2764\uFE0F',
+                  style: AppTypography.caption.copyWith(color: context.colors.textTertiary),
                 ),
               ],
             ),
@@ -276,7 +306,7 @@ class SettingsScreen extends ConsumerWidget {
             onPressed: () => _showResetDialog(context, ref),
             child: Text(
               'Reset & Re-run Onboarding',
-              style: AppTypography.caption.copyWith(color: AppColors.error),
+              style: AppTypography.caption.copyWith(color: context.colors.error),
             ),
           ),
 
@@ -290,11 +320,11 @@ class SettingsScreen extends ConsumerWidget {
     final isMetric = ref.read(settingsProvider).isMetric;
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.bgSecondary,
+      backgroundColor: context.colors.bgSecondary,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
       ),
-      builder: (_) => Padding(
+      builder: (sheetCtx) => Padding(
         padding: const EdgeInsets.all(AppSpacing.pagePadding),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -326,30 +356,153 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
+  void _showThemeDialog(BuildContext context, WidgetRef ref) {
+    final current = ref.read(settingsProvider).themeMode;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: context.colors.bgSecondary,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
+      ),
+      builder: (sheetCtx) => Padding(
+        padding: const EdgeInsets.all(AppSpacing.pagePadding),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Theme', style: AppTypography.h3),
+            const SizedBox(height: AppSpacing.lg),
+            for (final entry in [
+              (ThemeMode.system, 'System Default', Icons.brightness_auto_rounded),
+              (ThemeMode.dark, 'Dark', Icons.dark_mode_rounded),
+              (ThemeMode.light, 'Light', Icons.light_mode_rounded),
+            ])
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: _UnitOption(
+                  label: entry.$2,
+                  isSelected: current == entry.$1,
+                  onTap: () {
+                    ref.read(settingsProvider.notifier).setThemeMode(entry.$1);
+                    Navigator.pop(context);
+                  },
+                ),
+              ),
+            const SizedBox(height: AppSpacing.md),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static const _accentPresets = <(String, Color)>[
+    ('Lime', Color(0xFFBDFF3A)),
+    ('Cyan', Color(0xFF3ADFFF)),
+    ('Coral', Color(0xFFFF6B6B)),
+    ('Purple', Color(0xFFA78BFA)),
+    ('Blue', Color(0xFF60A5FA)),
+    ('Orange', Color(0xFFFBBF24)),
+    ('Pink', Color(0xFFF472B6)),
+    ('Teal', Color(0xFF34D399)),
+  ];
+
+  void _showAccentColorPicker(BuildContext context, WidgetRef ref) {
+    final currentAccent = ref.read(settingsProvider).accentColorValue;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: context.colors.bgSecondary,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
+      ),
+      builder: (sheetCtx) => Padding(
+        padding: const EdgeInsets.all(AppSpacing.pagePadding),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Accent Color', style: AppTypography.h3),
+            const SizedBox(height: AppSpacing.lg),
+            Wrap(
+              spacing: AppSpacing.md,
+              runSpacing: AppSpacing.md,
+              children: _accentPresets.map((preset) {
+                final isSelected = currentAccent == preset.$2.toARGB32() ||
+                    (currentAccent == null && preset.$2 == const Color(0xFFBDFF3A));
+                return GestureDetector(
+                  onTap: () {
+                    if (preset.$2 == const Color(0xFFBDFF3A)) {
+                      ref.read(settingsProvider.notifier).setAccentColor(null);
+                    } else {
+                      ref.read(settingsProvider.notifier).setAccentColor(preset.$2);
+                    }
+                    Navigator.pop(context);
+                  },
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: preset.$2,
+                          border: Border.all(
+                            color: isSelected ? Colors.white : Colors.transparent,
+                            width: 2.5,
+                          ),
+                          boxShadow: isSelected
+                              ? [BoxShadow(color: preset.$2.withAlpha(80), blurRadius: 10, spreadRadius: 2)]
+                              : null,
+                        ),
+                        child: isSelected
+                            ? const Icon(Icons.check_rounded, color: Colors.black, size: 20)
+                            : null,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        preset.$1,
+                        style: AppTypography.caption.copyWith(
+                          color: isSelected ? context.colors.textPrimary : context.colors.textTertiary,
+                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showResetDialog(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.bgSecondary,
+      builder: (dialogCtx) => AlertDialog(
+        backgroundColor: context.colors.bgSecondary,
         title: Text('Reset App', style: AppTypography.h3),
         content: Text(
           'This will clear all your data and restart the onboarding. This cannot be undone.',
-          style: AppTypography.body.copyWith(color: AppColors.textSecondary),
+          style: AppTypography.body.copyWith(color: context.colors.textSecondary),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary)),
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: Text('Cancel', style: AppTypography.bodyMedium.copyWith(color: context.colors.textSecondary)),
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.pop(dialogCtx);
               final prefs = await SharedPreferences.getInstance();
               await prefs.clear();
-              ref.read(geminiClientProvider).clearCache();
+              ref.read(aiProvider).clearCache();
               if (context.mounted) context.go('/onboarding');
             },
-            child: Text('Reset', style: AppTypography.bodyMedium.copyWith(color: AppColors.error)),
+            child: Text('Reset', style: AppTypography.bodyMedium.copyWith(color: context.colors.error)),
           ),
         ],
       ),
@@ -359,21 +512,21 @@ class SettingsScreen extends ConsumerWidget {
   void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.bgSecondary,
+      builder: (dialogCtx) => AlertDialog(
+        backgroundColor: context.colors.bgSecondary,
         title: Text('Log Out', style: AppTypography.h3),
         content: Text(
           'Are you sure you want to log out?',
-          style: AppTypography.body.copyWith(color: AppColors.textSecondary),
+          style: AppTypography.body.copyWith(color: context.colors.textSecondary),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary)),
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: Text('Cancel', style: AppTypography.bodyMedium.copyWith(color: context.colors.textSecondary)),
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.pop(dialogCtx);
               try {
                 await AuthService.signOut();
                 // Router redirect will handle navigation to /login
@@ -381,7 +534,7 @@ class SettingsScreen extends ConsumerWidget {
                 SnackbarService.error('Failed to log out. Please try again.');
               }
             },
-            child: Text('Log Out', style: AppTypography.bodyMedium.copyWith(color: AppColors.error)),
+            child: Text('Log Out', style: AppTypography.bodyMedium.copyWith(color: context.colors.error)),
           ),
         ],
       ),
@@ -391,25 +544,25 @@ class SettingsScreen extends ConsumerWidget {
   void _showDeleteAccountDialog(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.bgSecondary,
+      builder: (dialogCtx) => AlertDialog(
+        backgroundColor: context.colors.bgSecondary,
         title: Text('Delete Account', style: AppTypography.h3),
         content: Text(
           'This will permanently delete your account and all associated data. This action cannot be undone.',
-          style: AppTypography.body.copyWith(color: AppColors.textSecondary),
+          style: AppTypography.body.copyWith(color: context.colors.textSecondary),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary)),
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: Text('Cancel', style: AppTypography.bodyMedium.copyWith(color: context.colors.textSecondary)),
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.pop(dialogCtx);
               try {
                 final prefs = await SharedPreferences.getInstance();
                 await prefs.clear();
-                ref.read(geminiClientProvider).clearCache();
+                ref.read(aiProvider).clearCache();
                 await AuthService.deleteAccount();
                 SnackbarService.success('Account deleted.');
                 // Router redirect will handle navigation
@@ -417,7 +570,7 @@ class SettingsScreen extends ConsumerWidget {
                 SnackbarService.error('Failed to delete account. You may need to re-authenticate first.');
               }
             },
-            child: Text('Delete', style: AppTypography.bodyMedium.copyWith(color: AppColors.error)),
+            child: Text('Delete', style: AppTypography.bodyMedium.copyWith(color: context.colors.error)),
           ),
         ],
       ),
@@ -435,7 +588,7 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: AppSpacing.sm, left: 4),
       child: Text(
         title.toUpperCase(),
-        style: AppTypography.overline.copyWith(color: AppColors.textTertiary),
+        style: AppTypography.overline.copyWith(color: context.colors.textTertiary),
       ),
     );
   }
@@ -462,27 +615,27 @@ class _SettingsTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 2),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-        tileColor: AppColors.surfaceCard,
+        tileColor: context.colors.surfaceCard,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
-          side: BorderSide(color: AppColors.surfaceCardBorder),
+          side: BorderSide(color: context.colors.surfaceCardBorder),
         ),
         leading: Container(
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: AppColors.bgTertiary,
+            color: context.colors.bgTertiary,
             borderRadius: BorderRadius.circular(AppRadius.sm),
           ),
-          child: Icon(icon, size: 18, color: AppColors.textSecondary),
+          child: Icon(icon, size: 18, color: context.colors.textSecondary),
         ),
         title: Text(label, style: AppTypography.bodyMedium),
         subtitle: subtitle != null
-            ? Text(subtitle!, style: AppTypography.caption.copyWith(color: AppColors.textTertiary))
+            ? Text(subtitle!, style: AppTypography.caption.copyWith(color: context.colors.textTertiary))
             : null,
         trailing: trailing ??
             (onTap != null
-                ? const Icon(Icons.chevron_right_rounded, color: AppColors.textTertiary, size: 20)
+                ? Icon(Icons.chevron_right_rounded, color: context.colors.textTertiary, size: 20)
                 : null),
         onTap: onTap,
       ),
@@ -504,16 +657,16 @@ class _UnitOption extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.limeGlow : AppColors.surfaceCard,
+          color: isSelected ? context.colors.limeGlow : context.colors.surfaceCard,
           borderRadius: BorderRadius.circular(AppRadius.md),
           border: Border.all(
-            color: isSelected ? AppColors.lime : AppColors.surfaceCardBorder,
+            color: isSelected ? context.colors.lime : context.colors.surfaceCardBorder,
           ),
         ),
         child: Row(
           children: [
             Expanded(child: Text(label, style: AppTypography.bodyMedium)),
-            if (isSelected) const Icon(Icons.check_circle_rounded, color: AppColors.lime, size: 20),
+            if (isSelected) Icon(Icons.check_circle_rounded, color: context.colors.lime, size: 20),
           ],
         ),
       ),

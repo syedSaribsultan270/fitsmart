@@ -3,9 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../providers/onboarding_provider.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/theme_extensions.dart';
 import '../../../core/widgets/app_button.dart';
 import 'onboarding_flow.dart';
 
@@ -22,15 +22,19 @@ class _StepTargetsState extends ConsumerState<StepTargets> {
   String _pace = 'steady';
   int _workoutDays = 4;
 
-  static const _paces = [
-    _Pace('slow', '🐢', 'Slow & Steady', '0.25 kg/week', 'Sustainable, easy lifestyle change', AppColors.success),
-    _Pace('steady', '🏃', 'Steady', '0.5 kg/week', 'Recommended for most people', AppColors.lime),
-    _Pace('aggressive', '🔥', 'Aggressive', '0.75 kg/week', 'Challenging — needs discipline', AppColors.warning),
-    _Pace('maximum', '⚡', 'Maximum', '1.0 kg/week', 'Extreme — consult a doctor', AppColors.error),
-  ];
+  static List<_Pace> _paces(BuildContext context) {
+    final colors = context.colors;
+    return [
+      _Pace('slow', '\uD83D\uDC22', 'Slow & Steady', '0.25 kg/week', 'Sustainable, easy lifestyle change', colors.success),
+      _Pace('steady', '\uD83C\uDFC3', 'Steady', '0.5 kg/week', 'Recommended for most people', colors.lime),
+      _Pace('aggressive', '\uD83D\uDD25', 'Aggressive', '0.75 kg/week', 'Challenging \u2014 needs discipline', colors.warning),
+      _Pace('maximum', '\u26A1', 'Maximum', '1.0 kg/week', 'Extreme \u2014 consult a doctor', colors.error),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
+    final paces = _paces(context);
     final data = ref.read(onboardingProvider);
     final currentWeight = data.weightKg ?? 70;
     final diff = (_targetWeightKg - currentWeight).abs();
@@ -39,7 +43,7 @@ class _StepTargetsState extends ConsumerState<StepTargets> {
         : 0;
 
     return OnboardingStepBase(
-      emoji: '🎯',
+      emoji: '\uD83C\uDFAF',
       title: 'Set Your\nTargets',
       subtitle: 'Where are you headed and how fast?',
       scrollable: true,
@@ -50,21 +54,21 @@ class _StepTargetsState extends ConsumerState<StepTargets> {
           Container(
             padding: const EdgeInsets.all(AppSpacing.cardPadding),
             decoration: BoxDecoration(
-              color: AppColors.surfaceCard,
+              color: context.colors.surfaceCard,
               borderRadius: BorderRadius.circular(AppRadius.lg),
-              border: Border.all(color: AppColors.surfaceCardBorder),
+              border: Border.all(color: context.colors.surfaceCardBorder),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('TARGET WEIGHT', style: AppTypography.overline.copyWith(color: AppColors.textTertiary)),
+                Text('TARGET WEIGHT', style: AppTypography.overline.copyWith(color: context.colors.textTertiary)),
                 const SizedBox(height: AppSpacing.sm),
                 Row(
                   children: [
                     Text(
                       '${_targetWeightKg.toStringAsFixed(1)} kg',
                       style: AppTypography.h2.copyWith(
-                        color: AppColors.lime,
+                        color: context.colors.lime,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -73,21 +77,21 @@ class _StepTargetsState extends ConsumerState<StepTargets> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: AppColors.bgTertiary,
+                          color: context.colors.bgTertiary,
                           borderRadius: BorderRadius.circular(AppRadius.full),
                         ),
                         child: Text(
                           _targetWeightKg < currentWeight
-                              ? '−${diff.toStringAsFixed(1)} kg'
+                              ? '\u2212${diff.toStringAsFixed(1)} kg'
                               : _targetWeightKg > currentWeight
                                   ? '+${diff.toStringAsFixed(1)} kg'
                                   : 'maintain',
                           style: AppTypography.caption.copyWith(
                             color: _targetWeightKg < currentWeight
-                                ? AppColors.coral
+                                ? context.colors.coral
                                 : _targetWeightKg > currentWeight
-                                    ? AppColors.cyan
-                                    : AppColors.success,
+                                    ? context.colors.cyan
+                                    : context.colors.success,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -118,9 +122,9 @@ class _StepTargetsState extends ConsumerState<StepTargets> {
           const SizedBox(height: AppSpacing.sectionGap),
 
           // Pace selector
-          Text('PACE', style: AppTypography.overline.copyWith(color: AppColors.textTertiary)),
+          Text('PACE', style: AppTypography.overline.copyWith(color: context.colors.textTertiary)),
           const SizedBox(height: AppSpacing.md),
-          ...(_paces.asMap().entries.map((e) {
+          ...(paces.asMap().entries.map((e) {
             final p = e.value;
             final isSelected = _pace == p.id;
             return Padding(
@@ -134,10 +138,10 @@ class _StepTargetsState extends ConsumerState<StepTargets> {
                   duration: 200.ms,
                   padding: const EdgeInsets.all(AppSpacing.md),
                   decoration: BoxDecoration(
-                    color: isSelected ? p.color.withValues(alpha: 0.08) : AppColors.surfaceCard,
+                    color: isSelected ? p.color.withValues(alpha: 0.08) : context.colors.surfaceCard,
                     borderRadius: BorderRadius.circular(AppRadius.md),
                     border: Border.all(
-                      color: isSelected ? p.color : AppColors.surfaceCardBorder,
+                      color: isSelected ? p.color : context.colors.surfaceCardBorder,
                       width: isSelected ? 1.5 : 1,
                     ),
                   ),
@@ -150,15 +154,15 @@ class _StepTargetsState extends ConsumerState<StepTargets> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '${p.title} · ${p.rate}',
+                              '${p.title} \u00B7 ${p.rate}',
                               style: AppTypography.bodyMedium.copyWith(
                                 fontWeight: FontWeight.w700,
-                                color: isSelected ? p.color : AppColors.textPrimary,
+                                color: isSelected ? p.color : context.colors.textPrimary,
                               ),
                             ),
                             Text(
                               p.desc,
-                              style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+                              style: AppTypography.caption.copyWith(color: context.colors.textTertiary),
                             ),
                           ],
                         ),
@@ -172,7 +176,7 @@ class _StepTargetsState extends ConsumerState<StepTargets> {
           const SizedBox(height: AppSpacing.sectionGap),
 
           // Workout days
-          Text('WORKOUT DAYS PER WEEK', style: AppTypography.overline.copyWith(color: AppColors.textTertiary)),
+          Text('WORKOUT DAYS PER WEEK', style: AppTypography.overline.copyWith(color: context.colors.textTertiary)),
           const SizedBox(height: AppSpacing.md),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -189,13 +193,13 @@ class _StepTargetsState extends ConsumerState<StepTargets> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: isSelected ? AppColors.lime : AppColors.surfaceCard,
+                    color: isSelected ? context.colors.lime : context.colors.surfaceCard,
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: isSelected ? AppColors.lime : AppColors.surfaceCardBorder,
+                      color: isSelected ? context.colors.lime : context.colors.surfaceCardBorder,
                     ),
                     boxShadow: isSelected
-                        ? [BoxShadow(color: AppColors.lime.withValues(alpha: 0.3), blurRadius: 8)]
+                        ? [BoxShadow(color: context.colors.lime.withValues(alpha: 0.3), blurRadius: 8)]
                         : null,
                   ),
                   child: Center(
@@ -203,7 +207,7 @@ class _StepTargetsState extends ConsumerState<StepTargets> {
                       '$day',
                       style: AppTypography.bodyMedium.copyWith(
                         fontWeight: FontWeight.w700,
-                        color: isSelected ? AppColors.textInverse : AppColors.textSecondary,
+                        color: isSelected ? context.colors.textInverse : context.colors.textSecondary,
                       ),
                     ),
                   ),
@@ -215,7 +219,7 @@ class _StepTargetsState extends ConsumerState<StepTargets> {
           Center(
             child: Text(
               '$_workoutDays day${_workoutDays > 1 ? 's' : ''} per week',
-              style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
+              style: AppTypography.bodyMedium.copyWith(color: context.colors.textSecondary),
             ),
           ),
 
@@ -224,19 +228,19 @@ class _StepTargetsState extends ConsumerState<StepTargets> {
             Container(
               padding: const EdgeInsets.all(AppSpacing.cardPadding),
               decoration: BoxDecoration(
-                color: AppColors.limeGlow,
+                color: context.colors.limeGlow,
                 borderRadius: BorderRadius.circular(AppRadius.md),
-                border: Border.all(color: AppColors.lime.withValues(alpha: 0.3)),
+                border: Border.all(color: context.colors.lime.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
-                  const Text('⏱️', style: TextStyle(fontSize: 24)),
+                  const Text('\u23F1\uFE0F', style: TextStyle(fontSize: 24)),
                   const SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: Text(
                       'At your pace, you could reach your goal in ~$weeksAtPace weeks.',
                       style: AppTypography.bodyMedium.copyWith(
-                        color: AppColors.lime,
+                        color: context.colors.lime,
                       ),
                     ),
                   ),

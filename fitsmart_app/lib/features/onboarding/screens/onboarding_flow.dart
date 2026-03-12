@@ -5,9 +5,9 @@ import 'package:go_router/go_router.dart';
 import '../providers/onboarding_provider.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/firestore_service.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/theme_extensions.dart';
 import 'step_welcome.dart';
 import 'step_mission.dart';
 import 'step_bio.dart';
@@ -81,7 +81,7 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
         }
 
         // Don't await — navigate immediately, sync in background
-        FirestoreService.saveProfile(uid, profileData).catchError((_) {});
+        FirestoreService.saveProfile(uid, profileData).catchError((e) { debugPrint('[Firestore] profile sync failed: $e'); });
       }
 
       if (mounted) context.go('/dashboard');
@@ -91,7 +91,7 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('Something went wrong. Please try again.'),
-            backgroundColor: AppColors.error,
+            backgroundColor: context.colors.error,
           ),
         );
       }
@@ -101,7 +101,7 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
+      backgroundColor: context.colors.bgPrimary,
       body: Stack(
         children: [
           // Pages
@@ -173,13 +173,13 @@ class _OnboardingProgress extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: AppColors.surfaceCard,
+                color: context.colors.surfaceCard,
                 borderRadius: BorderRadius.circular(AppRadius.md),
-                border: Border.all(color: AppColors.surfaceCardBorder),
+                border: Border.all(color: context.colors.surfaceCardBorder),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.arrow_back_ios_new_rounded,
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
                 size: 16,
               ),
             ),
@@ -200,7 +200,7 @@ class _OnboardingProgress extends StatelessWidget {
           Text(
             '$currentStep/$totalSteps',
             style: AppTypography.caption.copyWith(
-              color: AppColors.textTertiary,
+              color: context.colors.textTertiary,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -230,15 +230,15 @@ class _DotProgress extends StatelessWidget {
               height: isActive ? 6 : 4,
               decoration: BoxDecoration(
                 color: isDone
-                    ? AppColors.lime
+                    ? context.colors.lime
                     : isActive
-                        ? AppColors.lime.withValues(alpha: 0.7)
-                        : AppColors.surfaceCardBorder,
+                        ? context.colors.lime.withValues(alpha: 0.7)
+                        : context.colors.surfaceCardBorder,
                 borderRadius: BorderRadius.circular(AppRadius.full),
                 boxShadow: isActive
                     ? [
                         BoxShadow(
-                          color: AppColors.lime.withValues(alpha: 0.4),
+                          color: context.colors.lime.withValues(alpha: 0.4),
                           blurRadius: 6,
                         ),
                       ]
@@ -296,7 +296,7 @@ class OnboardingStepBase extends StatelessWidget {
           const SizedBox(height: AppSpacing.sm),
           Text(subtitle,
                   style: AppTypography.body
-                      .copyWith(color: AppColors.textSecondary))
+                      .copyWith(color: context.colors.textSecondary))
               .animate(delay: 100.ms)
               .fadeIn(duration: 300.ms),
         ],

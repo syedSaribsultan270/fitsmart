@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs -I {} bash -c \"echo ''=== {} ==='' && head -30 {}\")",
+      "Bash(find /Users/vyro/Downloads/fitsmart2.0/fitsmart_app/lib -name \"*.dart\" -type f -exec grep -l \"^import.*[''\"\"]\" {} ;)",
+      "Read(//Users/vyro/Downloads/fitsmart2.0/fitsmart_app/**)",
+      "Bash(done)",
+      "Read(//Users/vyro/Downloads/fitsmart2.0/fitsmart_app/{sum+=$2} END {print \"\"Total imports across all files:\"\", sum; print \"\"Average imports per file:\"\", \\(sum/**)",
+      "Bash(export PATH=\"$PATH:/Users/vyro/development/flutter/bin\")",
+      "Bash(dart analyze lib/services/food_knowledge_service.dart)",
+      "Bash(flutter analyze lib/services/user_context_service.dart lib/features/ai_coach/screens/ai_coach_screen.dart lib/features/nutrition/screens/log_meal_screen.dart lib/features/nutrition/screens/nutrition_screen.dart lib/features/workouts/screens/workouts_screen.dart)",
+      "Bash(flutter analyze lib/core/widgets/app_button.dart lib/core/widgets/app_card.dart lib/core/widgets/macro_bar.dart lib/core/widgets/calorie_ring.dart lib/core/widgets/xp_progress_bar.dart lib/core/widgets/bottom_nav.dart lib/core/widgets/skeleton_loader.dart)",
+      "Bash(flutter analyze lib/features/dashboard/screens/dashboard_screen.dart lib/features/nutrition/screens/nutrition_screen.dart lib/features/nutrition/screens/log_meal_screen.dart)",
+      "Bash(flutter analyze lib/features/settings/ lib/features/auth/ lib/features/onboarding/)",
+      "Bash(flutter analyze)",
+      "Bash(ls -la /Users/vyro/Downloads/fitsmart2.0/fitsmart_app/android/app/src/main/res/drawable* /Users/vyro/Downloads/fitsmart2.0/fitsmart_app/android/app/src/main/res/mipmap-*)",
+      "Bash(xargs cat)",
+      "Bash(sips -g pixelHeight -g pixelWidth /Users/vyro/Downloads/fitsmart2.0/fitsmart_app/icon.png)"
+    ]
+  }
+}

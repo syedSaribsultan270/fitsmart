@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/theme_extensions.dart';
 
 class LegalScreen extends StatelessWidget {
   final String title;
@@ -13,7 +13,7 @@ class LegalScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
+      backgroundColor: context.colors.bgPrimary,
       appBar: AppBar(
         title: Text(title, style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w700)),
         leading: IconButton(
@@ -25,7 +25,7 @@ class LegalScreen extends StatelessWidget {
         padding: const EdgeInsets.all(AppSpacing.pagePadding),
         child: Text(
           content,
-          style: AppTypography.body.copyWith(color: AppColors.textSecondary, height: 1.7),
+          style: AppTypography.body.copyWith(color: context.colors.textSecondary, height: 1.7),
         ),
       ),
     );

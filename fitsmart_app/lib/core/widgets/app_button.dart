@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_typography.dart';
+import '../theme/theme_extensions.dart';
 
 enum AppButtonVariant { primary, secondary, ghost, danger, lime }
 
@@ -29,7 +29,7 @@ class AppButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = _getColors();
+    final colors = _getColors(context);
 
     return SizedBox(
       width: fullWidth ? double.infinity : null,
@@ -94,36 +94,37 @@ class AppButton extends StatelessWidget {
     );
   }
 
-  Map<String, Color?> _getColors() {
+  Map<String, Color?> _getColors(BuildContext context) {
+    final c = context.colors;
     switch (variant) {
       case AppButtonVariant.primary:
       case AppButtonVariant.lime:
         return {
-          'bg': AppColors.lime,
-          'fg': AppColors.textInverse,
-          'splash': AppColors.limeMuted,
+          'bg': c.lime,
+          'fg': c.textInverse,
+          'splash': c.limeMuted,
           'border': null,
         };
       case AppButtonVariant.secondary:
         return {
-          'bg': AppColors.surfaceCard,
-          'fg': AppColors.textPrimary,
-          'splash': AppColors.surfaceCardHover,
-          'border': AppColors.surfaceCardBorder,
+          'bg': c.surfaceCard,
+          'fg': c.textPrimary,
+          'splash': c.surfaceCardHover,
+          'border': c.surfaceCardBorder,
         };
       case AppButtonVariant.ghost:
         return {
           'bg': Colors.transparent,
-          'fg': AppColors.lime,
-          'splash': AppColors.limeGlow,
-          'border': AppColors.lime,
+          'fg': c.lime,
+          'splash': c.limeGlow,
+          'border': c.lime,
         };
       case AppButtonVariant.danger:
         return {
-          'bg': AppColors.errorBg,
-          'fg': AppColors.error,
-          'splash': AppColors.errorBg,
-          'border': AppColors.error,
+          'bg': c.errorBg,
+          'fg': c.error,
+          'splash': c.errorBg,
+          'border': c.error,
         };
     }
   }
@@ -146,7 +147,8 @@ class PillButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = activeColor ?? AppColors.lime;
+    final c = context.colors;
+    final color = activeColor ?? c.lime;
     return GestureDetector(
       onTap: () {
         HapticFeedback.selectionClick();
@@ -159,14 +161,14 @@ class PillButton extends StatelessWidget {
           color: isActive ? color : Colors.transparent,
           borderRadius: BorderRadius.circular(AppRadius.full),
           border: Border.all(
-            color: isActive ? color : AppColors.surfaceCardBorder,
+            color: isActive ? color : c.surfaceCardBorder,
             width: 1.5,
           ),
         ),
         child: Text(
           label,
           style: AppTypography.caption.copyWith(
-            color: isActive ? AppColors.textInverse : AppColors.textSecondary,
+            color: isActive ? c.textInverse : c.textSecondary,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.3,
           ),

@@ -1,8 +1,10 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../models/onboarding_data.dart';
 import '../../../core/utils/tdee_calculator.dart';
+import '../../../services/firestore_service.dart';
 
 class OnboardingNotifier extends StateNotifier<OnboardingData> {
   OnboardingNotifier() : super(OnboardingData());
@@ -73,6 +75,27 @@ class OnboardingNotifier extends StateNotifier<OnboardingData> {
   static Future<bool> isOnboardingCompleteLocal() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool('onboarding_complete') ?? false;
+  }
+
+  /// Try to recover onboarding profile from Firestore (reinstall scenario).
+  /// Returns true if a complete profile was found and restored locally.
+  static Future<bool> tryRestoreFromFirestore(String uid) async {
+    try {
+      final profile = await FirestoreService.getProfile(uid);
+      if (profile == null) return false;
+
+      final data = OnboardingData.fromJson(profile);
+      if (!data.isComplete) return false;
+
+      // Restore to SharedPreferences so all local providers work
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('onboarding_data', jsonEncode(data.toJson()));
+      await prefs.setBool('onboarding_complete', true);
+      return true;
+    } catch (e) {
+      debugPrint('[OnboardingNotifier] Firestore recovery failed: $e');
+      return false;
+    }
   }
 }
 

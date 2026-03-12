@@ -2,9 +2,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/theme_extensions.dart';
 import '../../../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -88,7 +88,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final bottomPad = MediaQuery.of(context).padding.bottom + 16;
 
     return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
+      backgroundColor: context.colors.bgPrimary,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding),
@@ -99,21 +99,21 @@ class _LoginScreenState extends State<LoginScreen> {
                 const Spacer(flex: 2),
 
                 // Logo
-                const Text('⚡', style: TextStyle(fontSize: 56))
+                const Text('\u26A1', style: TextStyle(fontSize: 56))
                     .animate()
                     .scale(duration: 500.ms, curve: Curves.elasticOut),
                 const SizedBox(height: AppSpacing.lg),
                 Text(
                   'FitSmart AI',
                   style: AppTypography.h1.copyWith(
-                    color: AppColors.lime,
+                    color: context.colors.lime,
                     letterSpacing: -1,
                   ),
                 ).animate().fadeIn(duration: 400.ms),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
                   'Your AI fitness companion',
-                  style: AppTypography.body.copyWith(color: AppColors.textTertiary),
+                  style: AppTypography.body.copyWith(color: context.colors.textTertiary),
                 ).animate().fadeIn(delay: 200.ms),
 
                 const Spacer(),
@@ -148,7 +148,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       icon: Icon(
                         _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
                         size: 20,
-                        color: AppColors.textTertiary,
+                        color: context.colors.textTertiary,
                       ),
                       onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                     ),
@@ -167,7 +167,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: () => context.push('/forgot-password'),
                     child: Text(
                       'Forgot password?',
-                      style: AppTypography.caption.copyWith(color: AppColors.cyan),
+                      style: AppTypography.caption.copyWith(color: context.colors.cyan),
                     ),
                   ),
                 ),
@@ -180,12 +180,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(AppSpacing.md),
                       decoration: BoxDecoration(
-                        color: AppColors.errorBg,
+                        color: context.colors.errorBg,
                         borderRadius: BorderRadius.circular(AppRadius.md),
                       ),
                       child: Text(
                         _errorMessage!,
-                        style: AppTypography.caption.copyWith(color: AppColors.error),
+                        style: AppTypography.caption.copyWith(color: context.colors.error),
                       ),
                     ),
                   ),
@@ -199,12 +199,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _signIn,
                     child: _isLoading
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 24,
                             height: 24,
                             child: CircularProgressIndicator(
                               strokeWidth: 2.5,
-                              color: AppColors.textInverse,
+                              color: context.colors.textInverse,
                             ),
                           )
                         : const Text('Sign In'),
@@ -216,12 +216,12 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Divider
                 Row(
                   children: [
-                    const Expanded(child: Divider(color: AppColors.surfaceCardBorder)),
+                    Expanded(child: Divider(color: context.colors.surfaceCardBorder)),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                      child: Text('or', style: AppTypography.caption.copyWith(color: AppColors.textTertiary)),
+                      child: Text('or', style: AppTypography.caption.copyWith(color: context.colors.textTertiary)),
                     ),
-                    const Expanded(child: Divider(color: AppColors.surfaceCardBorder)),
+                    Expanded(child: Divider(color: context.colors.surfaceCardBorder)),
                   ],
                 ),
 
@@ -236,10 +236,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     icon: const Text('G', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white)),
                     label: Text(
                       'Continue with Google',
-                      style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
+                      style: AppTypography.bodyMedium.copyWith(color: context.colors.textSecondary),
                     ),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppColors.surfaceCardBorder),
+                      side: BorderSide(color: context.colors.surfaceCardBorder),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(AppRadius.lg),
                       ),
@@ -256,14 +256,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: OutlinedButton(
                     onPressed: _isLoading ? null : _continueAsGuest,
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppColors.surfaceCardBorder),
+                      side: BorderSide(color: context.colors.surfaceCardBorder),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(AppRadius.lg),
                       ),
                     ),
                     child: Text(
                       'Continue as Guest',
-                      style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
+                      style: AppTypography.bodyMedium.copyWith(color: context.colors.textSecondary),
                     ),
                   ),
                 ),
@@ -276,14 +276,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     Text(
                       "Don't have an account? ",
-                      style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+                      style: AppTypography.caption.copyWith(color: context.colors.textTertiary),
                     ),
                     GestureDetector(
                       onTap: () => context.push('/signup'),
                       child: Text(
                         'Sign Up',
                         style: AppTypography.caption.copyWith(
-                          color: AppColors.lime,
+                          color: context.colors.lime,
                           fontWeight: FontWeight.w700,
                         ),
                       ),

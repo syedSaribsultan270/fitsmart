@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/theme_extensions.dart';
 import '../../../models/onboarding_data.dart';
 import '../../../features/dashboard/providers/dashboard_provider.dart';
 import '../../../services/auth_service.dart';
@@ -64,7 +64,7 @@ class _EditGoalsScreenState extends ConsumerState<EditGoalsScreen> {
 
       await prefs.setString('onboarding_data', jsonEncode(data.toJson()));
       final uid = AuthService.uid;
-      if (uid != null) FirestoreService.saveProfile(uid, data.toJson()).catchError((_) {});
+      if (uid != null) FirestoreService.saveProfile(uid, data.toJson()).catchError((e) { debugPrint('[Firestore] goals sync failed: $e'); });
       ref.invalidate(userProfileProvider);
 
       if (mounted) {
@@ -87,7 +87,7 @@ class _EditGoalsScreenState extends ConsumerState<EditGoalsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
+      backgroundColor: context.colors.bgPrimary,
       appBar: AppBar(
         title: Text('Fitness Goals', style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w700)),
         leading: IconButton(
@@ -98,15 +98,15 @@ class _EditGoalsScreenState extends ConsumerState<EditGoalsScreen> {
           TextButton(
             onPressed: _isLoading ? null : _save,
             child: _isLoading
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.lime))
-                : Text('Save', style: AppTypography.bodyMedium.copyWith(color: AppColors.lime)),
+                ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: context.colors.lime))
+                : Text('Save', style: AppTypography.bodyMedium.copyWith(color: context.colors.lime)),
           ),
         ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(AppSpacing.pagePadding),
         children: [
-          Text('Primary Goal', style: AppTypography.caption.copyWith(color: AppColors.textTertiary)),
+          Text('Primary Goal', style: AppTypography.caption.copyWith(color: context.colors.textTertiary)),
           const SizedBox(height: AppSpacing.sm),
           ..._goals.entries.map((e) => _GoalTile(
                 emoji: e.value.$1,
@@ -124,7 +124,7 @@ class _EditGoalsScreenState extends ConsumerState<EditGoalsScreen> {
           ),
 
           const SizedBox(height: AppSpacing.lg),
-          Text('Pace', style: AppTypography.caption.copyWith(color: AppColors.textTertiary)),
+          Text('Pace', style: AppTypography.caption.copyWith(color: context.colors.textTertiary)),
           const SizedBox(height: AppSpacing.sm),
           Wrap(
             spacing: 8,
@@ -134,18 +134,18 @@ class _EditGoalsScreenState extends ConsumerState<EditGoalsScreen> {
                 label: Text(p[0].toUpperCase() + p.substring(1)),
                 selected: isSelected,
                 onSelected: (_) => setState(() => _pace = p),
-                selectedColor: AppColors.lime.withValues(alpha: 0.2),
+                selectedColor: context.colors.lime.withValues(alpha: 0.2),
                 labelStyle: AppTypography.caption.copyWith(
-                  color: isSelected ? AppColors.lime : AppColors.textSecondary,
+                  color: isSelected ? context.colors.lime : context.colors.textSecondary,
                 ),
-                side: BorderSide(color: isSelected ? AppColors.lime : AppColors.surfaceCardBorder),
-                backgroundColor: AppColors.surfaceCard,
+                side: BorderSide(color: isSelected ? context.colors.lime : context.colors.surfaceCardBorder),
+                backgroundColor: context.colors.surfaceCard,
               );
             }).toList(),
           ),
 
           const SizedBox(height: AppSpacing.lg),
-          Text('Workout Days / Week', style: AppTypography.caption.copyWith(color: AppColors.textTertiary)),
+          Text('Workout Days / Week', style: AppTypography.caption.copyWith(color: context.colors.textTertiary)),
           const SizedBox(height: AppSpacing.sm),
           Slider(
             value: _workoutDays.toDouble(),
@@ -158,7 +158,7 @@ class _EditGoalsScreenState extends ConsumerState<EditGoalsScreen> {
           Center(
             child: Text(
               '$_workoutDays days per week',
-              style: AppTypography.bodyMedium.copyWith(color: AppColors.lime),
+              style: AppTypography.bodyMedium.copyWith(color: context.colors.lime),
             ),
           ),
         ],
@@ -188,9 +188,9 @@ class _GoalTile extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.limeGlow : AppColors.surfaceCard,
+          color: isSelected ? context.colors.limeGlow : context.colors.surfaceCard,
           borderRadius: BorderRadius.circular(AppRadius.md),
-          border: Border.all(color: isSelected ? AppColors.lime : AppColors.surfaceCardBorder),
+          border: Border.all(color: isSelected ? context.colors.lime : context.colors.surfaceCardBorder),
         ),
         child: Row(
           children: [
@@ -198,7 +198,7 @@ class _GoalTile extends StatelessWidget {
             const SizedBox(width: AppSpacing.md),
             Text(label, style: AppTypography.bodyMedium),
             const Spacer(),
-            if (isSelected) const Icon(Icons.check_circle_rounded, color: AppColors.lime, size: 20),
+            if (isSelected) Icon(Icons.check_circle_rounded, color: context.colors.lime, size: 20),
           ],
         ),
       ),

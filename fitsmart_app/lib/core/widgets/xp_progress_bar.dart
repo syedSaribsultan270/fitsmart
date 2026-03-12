@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_typography.dart';
+import '../theme/theme_extensions.dart';
 
 class XpProgressBar extends StatelessWidget {
   final int totalXp;
@@ -24,11 +24,12 @@ class XpProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (compact) return _buildCompact();
-    return _buildFull();
+    if (compact) return _buildCompact(context);
+    return _buildFull(context);
   }
 
-  Widget _buildFull() {
+  Widget _buildFull(BuildContext context) {
+    final c = context.colors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -40,16 +41,16 @@ class XpProgressBar extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: AppColors.limeGlow,
+                    color: c.limeGlow,
                     borderRadius: BorderRadius.circular(AppRadius.full),
                     border: Border.all(
-                      color: AppColors.lime.withValues(alpha: 0.3),
+                      color: c.lime.withValues(alpha: 0.3),
                     ),
                   ),
                   child: Text(
                     'LVL $currentLevel',
                     style: AppTypography.overline.copyWith(
-                      color: AppColors.lime,
+                      color: c.lime,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -58,7 +59,7 @@ class XpProgressBar extends StatelessWidget {
                 Text(
                   levelName,
                   style: AppTypography.bodyMedium.copyWith(
-                    color: AppColors.textPrimary,
+                    color: c.textPrimary,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -67,7 +68,7 @@ class XpProgressBar extends StatelessWidget {
             Text(
               '$xpToNext XP to next',
               style: AppTypography.caption.copyWith(
-                color: AppColors.textTertiary,
+                color: c.textTertiary,
               ),
             ),
           ],
@@ -80,7 +81,7 @@ class XpProgressBar extends StatelessWidget {
                 Container(
                   height: 8,
                   decoration: BoxDecoration(
-                    color: AppColors.surfaceCardBorder,
+                    color: c.surfaceCardBorder,
                     borderRadius: BorderRadius.circular(AppRadius.full),
                   ),
                 ),
@@ -90,13 +91,13 @@ class XpProgressBar extends StatelessWidget {
                   height: 8,
                   width: constraints.maxWidth * levelProgress,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [AppColors.lime, AppColors.limeMuted],
+                    gradient: LinearGradient(
+                      colors: [c.lime, c.limeMuted],
                     ),
                     borderRadius: BorderRadius.circular(AppRadius.full),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.lime.withValues(alpha: 0.4),
+                        color: c.lime.withValues(alpha: 0.4),
                         blurRadius: 6,
                         offset: const Offset(0, 2),
                       ),
@@ -111,26 +112,27 @@ class XpProgressBar extends StatelessWidget {
         Text(
           '$totalXp total XP',
           style: AppTypography.overline.copyWith(
-            color: AppColors.textTertiary,
+            color: c.textTertiary,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildCompact() {
+  Widget _buildCompact(BuildContext context) {
+    final c = context.colors;
     return Row(
       children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
           decoration: BoxDecoration(
-            color: AppColors.limeGlow,
+            color: c.limeGlow,
             borderRadius: BorderRadius.circular(AppRadius.full),
           ),
           child: Text(
             'LVL $currentLevel',
             style: AppTypography.overline.copyWith(
-              color: AppColors.lime,
+              color: c.lime,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -144,7 +146,7 @@ class XpProgressBar extends StatelessWidget {
                   Container(
                     height: 5,
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceCardBorder,
+                      color: c.surfaceCardBorder,
                       borderRadius: BorderRadius.circular(AppRadius.full),
                     ),
                   ),
@@ -154,7 +156,7 @@ class XpProgressBar extends StatelessWidget {
                     height: 5,
                     width: constraints.maxWidth * levelProgress,
                     decoration: BoxDecoration(
-                      color: AppColors.lime,
+                      color: c.lime,
                       borderRadius: BorderRadius.circular(AppRadius.full),
                     ),
                   ),
@@ -167,7 +169,7 @@ class XpProgressBar extends StatelessWidget {
         Text(
           '$totalXp XP',
           style: AppTypography.overline.copyWith(
-            color: AppColors.lime,
+            color: c.lime,
           ),
         ),
       ],
@@ -184,24 +186,25 @@ class XpGainToast extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.limeGlow,
+        color: c.limeGlow,
         borderRadius: BorderRadius.circular(AppRadius.full),
         border: Border.all(
-          color: AppColors.lime.withValues(alpha: 0.4),
+          color: c.lime.withValues(alpha: 0.4),
         ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('⚡', style: TextStyle(fontSize: 16)),
+          const Text('\u26A1', style: TextStyle(fontSize: 16)),
           const SizedBox(width: AppSpacing.xs),
           Text(
             '+$xp XP',
             style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.lime,
+              color: c.lime,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -209,7 +212,7 @@ class XpGainToast extends StatelessWidget {
           Text(
             reason,
             style: AppTypography.caption.copyWith(
-              color: AppColors.textSecondary,
+              color: c.textSecondary,
             ),
           ),
         ],

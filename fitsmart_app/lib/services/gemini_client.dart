@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import '../core/constants/app_constants.dart';
+import 'ai_cache.dart';
 
 class GeminiException implements Exception {
   final String message;
@@ -10,25 +11,6 @@ class GeminiException implements Exception {
   const GeminiException(this.message, {this.isRateLimited = false});
   @override
   String toString() => 'GeminiException: $message';
-}
-
-enum GeminiPriority { high, normal, low }
-
-class _CacheEntry {
-  final String response;
-  final DateTime createdAt;
-  final int ttlHours; // 0 = indefinite
-
-  _CacheEntry({
-    required this.response,
-    required this.createdAt,
-    required this.ttlHours,
-  });
-
-  bool get isExpired {
-    if (ttlHours == 0) return false;
-    return DateTime.now().difference(createdAt).inHours >= ttlHours;
-  }
 }
 
 class GeminiClient {
@@ -40,7 +22,7 @@ class GeminiClient {
 
   late final GenerativeModel _model;
   late final GenerativeModel _chatModel;
-  final Map<String, _CacheEntry> _cache = {};
+  final Map<String, AiCacheEntry> _cache = {};
 
   GeminiClient._internal({required String apiKey}) {
     // Structured JSON model — for meal analysis, workout plans, etc.
@@ -147,6 +129,7 @@ ALWAYS:
     required Uint8List imageBytes,
     required Map<String, dynamic> userContext,
     String? mimeType,
+    String? groundingContext,
   }) async {
     final imageHash = _hashBytes(imageBytes);
     final cacheKey = 'meal_photo_$imageHash';
@@ -154,10 +137,9 @@ ALWAYS:
     return _request(
       cacheKey: cacheKey,
       ttlHours: 0, // indefinite cache for same photo
-      priority: GeminiPriority.high,
       buildContent: () => [
         Content.multi([
-          TextPart(_buildMealAnalysisPrompt(userContext)),
+          TextPart(_buildMealAnalysisPrompt(userContext, groundingContext: groundingContext)),
           DataPart(mimeType ?? 'image/jpeg', imageBytes),
         ]),
       ],
@@ -167,17 +149,17 @@ ALWAYS:
   Future<Map<String, dynamic>> analyzeMealText({
     required String description,
     required Map<String, dynamic> userContext,
+    String? groundingContext,
   }) async {
-    final cacheKey = 'meal_text_${description.hashCode}';
+    final cacheKey = 'meal_text_${sha256.convert(utf8.encode(description)).toString().substring(0, 16)}';
 
     return _request(
       cacheKey: cacheKey,
       ttlHours: 24,
-      priority: GeminiPriority.high,
       buildContent: () => [
         Content.text('''
 ${_buildUserContextString(userContext)}
-
+${groundingContext != null ? '\n$groundingContext\n' : ''}
 Parse this meal description and return nutritional data:
 "$description"
 
@@ -205,12 +187,11 @@ Return JSON:
     required Map<String, dynamic> mealData,
     required Map<String, dynamic> userContext,
   }) async {
-    final cacheKey = 'meal_feedback_${jsonEncode(mealData).hashCode}';
+    final cacheKey = 'meal_feedback_${sha256.convert(utf8.encode(jsonEncode(mealData))).toString().substring(0, 16)}';
 
     return _request(
       cacheKey: cacheKey,
       ttlHours: 4,
-      priority: GeminiPriority.normal,
       buildContent: () => [
         Content.text('''
 ${_buildUserContextString(userContext)}
@@ -235,12 +216,11 @@ Return JSON:
     required int days,
     String? overrides,
   }) async {
-    final cacheKey = 'meal_plan_${userContext.hashCode}_${days}_${overrides?.hashCode}';
+    final cacheKey = 'meal_plan_${sha256.convert(utf8.encode(jsonEncode(userContext))).toString().substring(0, 16)}_${days}_${overrides != null ? sha256.convert(utf8.encode(overrides)).toString().substring(0, 16) : 'none'}';
 
     return _request(
       cacheKey: cacheKey,
       ttlHours: AppConstants.cacheTtlMealPlan,
-      priority: GeminiPriority.normal,
       buildContent: () => [
         Content.text('''
 ${_buildUserContextString(userContext)}
@@ -277,12 +257,11 @@ Generate a $days-day meal plan. Return JSON:
     required Map<String, dynamic> userContext,
     required int weeks,
   }) async {
-    final cacheKey = 'workout_plan_${userContext.hashCode}_$weeks';
+    final cacheKey = 'workout_plan_${sha256.convert(utf8.encode(jsonEncode(userContext))).toString().substring(0, 16)}_$weeks';
 
     return _request(
       cacheKey: cacheKey,
       ttlHours: AppConstants.cacheTtlWorkoutPlan,
-      priority: GeminiPriority.normal,
       buildContent: () => [
         Content.text('''
 ${_buildUserContextString(userContext)}
@@ -324,6 +303,7 @@ Return JSON:
     required List<Map<String, String>> history,
     Uint8List? imageBytes,
     String? mimeType,
+    String? groundingContext,
   }) async {
     try {
       final contents = <Content>[];
@@ -426,6 +406,12 @@ Return JSON:
         contextBlock.writeln(ctx['active_meal_plan']);
       }
 
+      // Inject food knowledge base grounding if available
+      if (groundingContext != null && groundingContext.isNotEmpty) {
+        contextBlock.writeln('');
+        contextBlock.writeln(groundingContext);
+      }
+
       // Build the user message with context
       final prompt = '''
 $contextBlock
@@ -465,7 +451,6 @@ Respond as their personal AI coach. Be specific, actionable, and reference their
     return _request(
       cacheKey: cacheKey,
       ttlHours: AppConstants.cacheTtlDailyInsight,
-      priority: GeminiPriority.low,
       buildContent: () => [
         Content.text('''
 ${_buildUserContextString(userContext)}
@@ -486,7 +471,6 @@ Return JSON:
   Future<Map<String, dynamic>> _request({
     required String? cacheKey,
     required int ttlHours,
-    required GeminiPriority priority,
     required List<Content> Function() buildContent,
   }) async {
     // Check cache
@@ -506,7 +490,7 @@ Return JSON:
 
       // Cache the response
       if (cacheKey != null) {
-        _cache[cacheKey] = _CacheEntry(
+        _cache[cacheKey] = AiCacheEntry(
           response: text,
           createdAt: DateTime.now(),
           ttlHours: ttlHours,
@@ -545,10 +529,10 @@ Return JSON:
     return 'USER_CONTEXT: ${jsonEncode(ctx)}';
   }
 
-  String _buildMealAnalysisPrompt(Map<String, dynamic> userContext) {
+  String _buildMealAnalysisPrompt(Map<String, dynamic> userContext, {String? groundingContext}) {
     return '''
 ${_buildUserContextString(userContext)}
-
+${groundingContext != null ? '\n$groundingContext\n' : ''}
 Analyze this meal photo. Identify all visible food items, estimate portions, and calculate macros.
 
 Return JSON:

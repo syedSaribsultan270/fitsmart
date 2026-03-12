@@ -58,4 +58,41 @@ abstract class AppConstants {
     'recomp': 0, // same cals, different macros
     'athletic': 200,
   };
+
+  // ── AI Fallback / Circuit Breaker ───────────────────────────
+  /// How long (seconds) the circuit stays "open" after a Gemini failure
+  /// before trying Gemini again.
+  static const circuitBreakerOpenDurationSec = 120; // 2 min
+
+  /// Number of consecutive Gemini failures before opening the circuit.
+  static const circuitBreakerFailureThreshold = 2;
+
+  /// Timeout for a single Gemini request (seconds).
+  static const geminiRequestTimeoutSec = 15;
+
+  /// Max local fallback response generation time (seconds).
+  static const localFallbackTimeoutSec = 2;
+
+  // ── On-Device LLM (Gemma 2 2B) ─────────────────────────────
+  /// Gemma 2 2B int8 CPU model file name on disk.
+  static const llmModelFileName = 'gemma2-2b-it-cpu-int8.task';
+
+  /// Max tokens for local LLM generation (input + output).
+  static const llmMaxTokens = 1024;
+
+  /// Temperature for local LLM (slightly creative for coach persona).
+  static const llmTemperature = 0.7;
+
+  /// Top-K sampling for local LLM.
+  static const llmTopK = 40;
+
+  /// Timeout for local LLM inference (seconds).
+  static const llmInferenceTimeoutSec = 30;
+
+  // ── Groq Cloud Fallback ──────────────────────────────────────
+  /// Groq model — Llama 3.3 70B: fast, strong general knowledge.
+  static const groqModel = 'llama-3.3-70b-versatile';
+
+  /// Timeout for a single Groq request (seconds).
+  static const groqRequestTimeoutSec = 20;
 }

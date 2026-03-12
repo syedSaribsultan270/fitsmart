@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,9 +6,12 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:drift/drift.dart' hide Column;
+import '../../../core/utils/mime_utils.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_colors_extension.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/theme_extensions.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/macro_bar.dart';
@@ -17,7 +19,9 @@ import '../../../data/database/app_database.dart';
 import '../../../data/database/database_provider.dart';
 import '../../../features/dashboard/providers/dashboard_provider.dart';
 import '../../../providers/gemini_provider.dart';
-import '../../../services/gemini_client.dart';
+import '../../../providers/food_knowledge_provider.dart';
+import '../../../services/food_knowledge_service.dart';
+import '../../../services/user_context_service.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/firestore_service.dart';
 import '../../../services/snackbar_service.dart';
@@ -60,15 +64,11 @@ class _LogMealScreenState extends ConsumerState<LogMealScreen>
   }
 
   Map<String, dynamic> _buildUserContext() {
-    final targets = ref.read(nutritionTargetsProvider);
-    final nutrition = ref.read(dailyNutritionProvider);
-    return {
-      'target_calories': targets.calories,
-      'target_protein_g': targets.proteinG,
-      'consumed_calories_today': nutrition.consumedCalories,
-      'consumed_protein_today': nutrition.consumedProtein,
-      'meal_type': _mealType,
-    };
+    return UserContextService.buildMinimalContextSync(
+      targets: ref.read(nutritionTargetsProvider),
+      nutrition: ref.read(dailyNutritionProvider),
+      mealType: _mealType,
+    );
   }
 
   Future<void> _pickAndAnalyzePhoto(ImageSource source) async {
@@ -88,7 +88,7 @@ class _LogMealScreenState extends ConsumerState<LogMealScreen>
 
     try {
       // Detect MIME type from the picked file
-      final mimeType = file.mimeType ?? _mimeTypeFromPath(file.path);
+      final mimeType = file.mimeType ?? mimeTypeFromPath(file.path);
 
       // Compress image before sending to Gemini
       Uint8List imageBytes;
@@ -109,11 +109,19 @@ class _LogMealScreenState extends ConsumerState<LogMealScreen>
         imageBytes = Uint8List.fromList(compressed);
       }
 
-      final gemini = ref.read(geminiClientProvider);
-      final result = await gemini.analyzeMealPhoto(
+      final ai = ref.read(aiProvider);
+
+      // RAG: build grounding context from food knowledge base
+      final kb = ref.read(foodKnowledgeProvider);
+      final grounding = kb.isLoaded
+          ? kb.buildGroundingContext('meal food Indian dish', maxResults: 12)
+          : null;
+
+      final result = await ai.analyzeMealPhoto(
         imageBytes: imageBytes,
         userContext: _buildUserContext(),
         mimeType: mimeType,
+        groundingContext: grounding,
       );
 
       if (mounted) {
@@ -122,35 +130,18 @@ class _LogMealScreenState extends ConsumerState<LogMealScreen>
           _analysisResult = result;
         });
       }
-    } on GeminiException catch (e) {
-      if (mounted) {
-        setState(() => _isAnalyzing = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message), backgroundColor: AppColors.error),
-        );
-      }
     } catch (e) {
       debugPrint('Photo analysis error: $e');
       if (mounted) {
         setState(() => _isAnalyzing = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to analyze photo. Please try again.'),
-            backgroundColor: AppColors.error,
+          SnackBar(
+            content: const Text('Could not analyze photo. Please try again.'),
+            backgroundColor: context.colors.error,
           ),
         );
       }
     }
-  }
-
-  /// Infer MIME type from file extension.
-  static String _mimeTypeFromPath(String path) {
-    final lower = path.toLowerCase();
-    if (lower.endsWith('.png')) return 'image/png';
-    if (lower.endsWith('.webp')) return 'image/webp';
-    if (lower.endsWith('.gif')) return 'image/gif';
-    if (lower.endsWith('.heic') || lower.endsWith('.heif')) return 'image/heic';
-    return 'image/jpeg'; // default fallback
   }
 
   Future<void> _analyzeText() async {
@@ -161,10 +152,18 @@ class _LogMealScreenState extends ConsumerState<LogMealScreen>
     });
 
     try {
-      final gemini = ref.read(geminiClientProvider);
-      final result = await gemini.analyzeMealText(
+      final ai = ref.read(aiProvider);
+
+      // RAG: retrieve relevant food entries for grounding
+      final kb = ref.read(foodKnowledgeProvider);
+      final grounding = kb.isLoaded
+          ? kb.buildGroundingContext(_textController.text.trim())
+          : null;
+
+      final result = await ai.analyzeMealText(
         description: _textController.text.trim(),
         userContext: _buildUserContext(),
+        groundingContext: grounding,
       );
       if (mounted) {
         setState(() {
@@ -172,20 +171,14 @@ class _LogMealScreenState extends ConsumerState<LogMealScreen>
           _analysisResult = result;
         });
       }
-    } on GeminiException catch (e) {
-      if (mounted) {
-        setState(() => _isAnalyzing = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message), backgroundColor: AppColors.error),
-        );
-      }
     } catch (e) {
+      debugPrint('Text analysis error: $e');
       if (mounted) {
         setState(() => _isAnalyzing = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Analysis failed. Please try again.'),
-            backgroundColor: AppColors.error,
+          SnackBar(
+            content: const Text('Analysis failed. Please try again.'),
+            backgroundColor: context.colors.error,
           ),
         );
       }
@@ -233,7 +226,7 @@ class _LogMealScreenState extends ConsumerState<LogMealScreen>
           'carbsG': (totals['carbs_g'] ?? 0).toDouble(),
           'fatG': (totals['fat_g'] ?? 0).toDouble(),
           'loggedAt': DateTime.now().toIso8601String(),
-        }).catchError((_) => '');
+        }).catchError((e) { debugPrint('[Firestore] meal sync failed: $e'); return ''; });
       }
 
       // Award XP
@@ -252,7 +245,7 @@ class _LogMealScreenState extends ConsumerState<LogMealScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to save meal: ${e.toString()}'),
-            backgroundColor: AppColors.error,
+            backgroundColor: context.colors.error,
           ),
         );
       }
@@ -261,8 +254,9 @@ class _LogMealScreenState extends ConsumerState<LogMealScreen>
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
+      backgroundColor: colors.bgPrimary,
       appBar: AppBar(
         title: const Text('Log Meal'),
         bottom: PreferredSize(
@@ -285,12 +279,12 @@ class _LogMealScreenState extends ConsumerState<LogMealScreen>
                           margin: const EdgeInsets.symmetric(horizontal: 3),
                           padding: const EdgeInsets.symmetric(vertical: 6),
                           decoration: BoxDecoration(
-                            color: selected ? AppColors.lime : AppColors.surfaceCard,
+                            color: selected ? colors.lime : colors.surfaceCard,
                             borderRadius: BorderRadius.circular(AppRadius.sm),
                             border: Border.all(
                               color: selected
-                                  ? AppColors.lime
-                                  : AppColors.surfaceCardBorder,
+                                  ? colors.lime
+                                  : colors.surfaceCardBorder,
                             ),
                           ),
                           child: Text(
@@ -298,8 +292,8 @@ class _LogMealScreenState extends ConsumerState<LogMealScreen>
                             textAlign: TextAlign.center,
                             style: AppTypography.overline.copyWith(
                               color: selected
-                                  ? AppColors.textInverse
-                                  : AppColors.textTertiary,
+                                  ? colors.textInverse
+                                  : colors.textTertiary,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -311,10 +305,10 @@ class _LogMealScreenState extends ConsumerState<LogMealScreen>
               ),
               TabBar(
                 controller: _tabs,
-                indicatorColor: AppColors.lime,
+                indicatorColor: colors.lime,
                 indicatorWeight: 2,
-                labelColor: AppColors.lime,
-                unselectedLabelColor: AppColors.textTertiary,
+                labelColor: colors.lime,
+                unselectedLabelColor: colors.textTertiary,
                 labelStyle: AppTypography.overline,
                 tabs: const [
                   Tab(text: 'CAMERA'),
@@ -372,6 +366,7 @@ class _CameraTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSpacing.pagePadding),
       child: Column(
@@ -414,10 +409,10 @@ class _CameraTab extends StatelessWidget {
             Container(
               height: 180,
               decoration: BoxDecoration(
-                color: AppColors.surfaceCard,
+                color: colors.surfaceCard,
                 borderRadius: BorderRadius.circular(AppRadius.lg),
                 border: Border.all(
-                  color: AppColors.surfaceCardBorder,
+                  color: colors.surfaceCardBorder,
                   style: BorderStyle.solid,
                 ),
               ),
@@ -430,13 +425,13 @@ class _CameraTab extends StatelessWidget {
                     Text(
                       'Take a photo of your meal',
                       style: AppTypography.bodyMedium.copyWith(
-                        color: AppColors.textTertiary,
+                        color: colors.textTertiary,
                       ),
                     ),
                     Text(
                       'AI will identify & calculate macros',
                       style: AppTypography.caption.copyWith(
-                        color: AppColors.textTertiary,
+                        color: colors.textTertiary,
                       ),
                     ),
                   ],
@@ -478,7 +473,7 @@ class _TextTab extends StatelessWidget {
         children: [
           Text(
             'Describe your meal',
-            style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
+            style: AppTypography.bodyMedium.copyWith(color: context.colors.textSecondary),
           ),
           const SizedBox(height: AppSpacing.sm),
           TextField(
@@ -517,23 +512,18 @@ class _SearchTab extends ConsumerStatefulWidget {
 
 class _SearchTabState extends ConsumerState<_SearchTab> {
   final _ctrl = TextEditingController();
-  List<Map<String, dynamic>> _allFoods = [];
-  List<Map<String, dynamic>> _results = [];
+  List<FoodSearchResult> _results = [];
   double _servings = 1.0;
-  Map<String, dynamic>? _selected;
+  FoodEntry? _selected;
   bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
-    _loadFoodDb();
-  }
-
-  Future<void> _loadFoodDb() async {
-    final data = await DefaultAssetBundle.of(context)
-        .loadString('assets/data/common_foods.json');
-    final list = (jsonDecode(data) as List).cast<Map<String, dynamic>>();
-    setState(() => _allFoods = list);
+    // Ensure knowledge base is loaded
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(foodKnowledgeLoadProvider);
+    });
   }
 
   void _search(String query) {
@@ -544,12 +534,9 @@ class _SearchTabState extends ConsumerState<_SearchTab> {
       });
       return;
     }
-    final q = query.toLowerCase();
+    final kb = ref.read(foodKnowledgeProvider);
     setState(() {
-      _results = _allFoods
-          .where((f) => (f['name'] as String).toLowerCase().contains(q))
-          .take(20)
-          .toList();
+      _results = kb.search(query, limit: 25);
       _selected = null;
     });
   }
@@ -559,21 +546,21 @@ class _SearchTabState extends ConsumerState<_SearchTab> {
     setState(() => _isSaving = true);
 
     final food = _selected!;
-    final cal = (food['cal'] as num).toDouble() * _servings;
-    final prot = (food['p'] as num).toDouble() * _servings;
-    final carbs = (food['c'] as num).toDouble() * _servings;
-    final fat = (food['f'] as num).toDouble() * _servings;
+    final cal = food.cal * _servings;
+    final prot = food.protein * _servings;
+    final carbs = food.carbs * _servings;
+    final fat = food.fat * _servings;
 
     final db = ref.read(databaseProvider);
     await db.insertMeal(MealLogsCompanion(
-      name: Value(food['name'] as String),
+      name: Value(food.name),
       mealType: Value(_guessMealType()),
       calories: Value(cal),
       proteinG: Value(prot),
       carbsG: Value(carbs),
       fatG: Value(fat),
       itemsJson: Value(jsonEncode([
-        {'name': food['name'], 'calories': cal, 'protein_g': prot, 'carbs_g': carbs, 'fat_g': fat}
+        {'name': food.name, 'calories': cal, 'protein_g': prot, 'carbs_g': carbs, 'fat_g': fat}
       ])),
       loggedAt: Value(DateTime.now()),
     ));
@@ -582,21 +569,21 @@ class _SearchTabState extends ConsumerState<_SearchTab> {
     final uid = AuthService.uid;
     if (uid != null) {
       FirestoreService.addMealLog(uid, {
-        'name': food['name'],
+        'name': food.name,
         'mealType': _guessMealType(),
         'calories': cal,
         'proteinG': prot,
         'carbsG': carbs,
         'fatG': fat,
         'loggedAt': DateTime.now().toIso8601String(),
-      }).catchError((_) => '');
+      }).catchError((e) { debugPrint('[Firestore] quick meal sync failed: $e'); return ''; });
     }
 
     await ref.read(gamificationProvider.notifier).awardXp(10, checkStreak: true);
 
     if (mounted) {
       setState(() => _isSaving = false);
-      SnackbarService.success('${food['name']} logged! +10 XP ⚡');
+      SnackbarService.success('${food.name} logged! +10 XP ⚡');
       Navigator.pop(context);
     }
   }
@@ -611,6 +598,10 @@ class _SearchTabState extends ConsumerState<_SearchTab> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+    final kbLoad = ref.watch(foodKnowledgeLoadProvider);
+    final totalFoods = ref.read(foodKnowledgeProvider).allFoods.length;
+
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.pagePadding),
       child: Column(
@@ -619,9 +610,9 @@ class _SearchTabState extends ConsumerState<_SearchTab> {
             controller: _ctrl,
             style: AppTypography.body,
             onChanged: _search,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               hintText: 'Search food database...',
-              prefixIcon: Icon(Icons.search, color: AppColors.textTertiary, size: 20),
+              prefixIcon: Icon(Icons.search, color: colors.textTertiary, size: 20),
             ),
           ),
           const SizedBox(height: AppSpacing.md),
@@ -631,23 +622,54 @@ class _SearchTabState extends ConsumerState<_SearchTab> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    _selected!['name'] as String,
-                    style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w700),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _selected!.name,
+                          style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                      if (_selected!.dietary != null)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: _selected!.dietary == 'veg'
+                                ? colors.success.withValues(alpha: 0.1)
+                                : colors.error.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(AppRadius.sm),
+                          ),
+                          child: Text(
+                            _selected!.dietary == 'veg' ? '🟢 Veg' : '🔴 Non-veg',
+                            style: AppTypography.overline.copyWith(
+                              color: _selected!.dietary == 'veg'
+                                  ? colors.success
+                                  : colors.error,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   Text(
-                    'Per ${_selected!['serving']}',
-                    style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+                    'Per ${_selected!.serving}',
+                    style: AppTypography.caption.copyWith(color: colors.textTertiary),
                   ),
+                  if (_selected!.description != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      _selected!.description!,
+                      style: AppTypography.caption.copyWith(color: colors.textTertiary),
+                    ),
+                  ],
                   const SizedBox(height: AppSpacing.md),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      _MacroChip('Cal', ((_selected!['cal'] as num) * _servings).toStringAsFixed(0), AppColors.warning),
-                      _MacroChip('P', '${((_selected!['p'] as num) * _servings).toStringAsFixed(1)}g', AppColors.macroProtein),
-                      _MacroChip('C', '${((_selected!['c'] as num) * _servings).toStringAsFixed(1)}g', AppColors.macroCarbs),
-                      _MacroChip('F', '${((_selected!['f'] as num) * _servings).toStringAsFixed(1)}g', AppColors.macroFat),
+                      _MacroChip('Cal', (_selected!.cal * _servings).toStringAsFixed(0), colors.warning),
+                      _MacroChip('P', '${(_selected!.protein * _servings).toStringAsFixed(1)}g', AppColorsExtension.macroProtein),
+                      _MacroChip('C', '${(_selected!.carbs * _servings).toStringAsFixed(1)}g', AppColorsExtension.macroCarbs),
+                      _MacroChip('F', '${(_selected!.fat * _servings).toStringAsFixed(1)}g', AppColorsExtension.macroFat),
                     ],
                   ),
                   const SizedBox(height: AppSpacing.md),
@@ -656,17 +678,17 @@ class _SearchTabState extends ConsumerState<_SearchTab> {
                       Text('Servings:', style: AppTypography.bodyMedium),
                       const SizedBox(width: AppSpacing.sm),
                       IconButton(
-                        icon: const Icon(Icons.remove_circle_outline, color: AppColors.textTertiary),
+                        icon: Icon(Icons.remove_circle_outline, color: colors.textTertiary),
                         onPressed: _servings > 0.5
                             ? () => setState(() => _servings -= 0.5)
                             : null,
                       ),
                       Text(
                         _servings.toStringAsFixed(1),
-                        style: AppTypography.h3.copyWith(color: AppColors.lime),
+                        style: AppTypography.h3.copyWith(color: colors.lime),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.add_circle_outline, color: AppColors.lime),
+                        icon: Icon(Icons.add_circle_outline, color: colors.lime),
                         onPressed: () => setState(() => _servings += 0.5),
                       ),
                     ],
@@ -686,13 +708,33 @@ class _SearchTabState extends ConsumerState<_SearchTab> {
             const SizedBox(height: AppSpacing.xl),
             Text(
               'No results found',
-              style: AppTypography.bodyMedium.copyWith(color: AppColors.textTertiary),
+              style: AppTypography.bodyMedium.copyWith(color: colors.textTertiary),
             ),
           ] else if (_results.isEmpty) ...[
             const SizedBox(height: AppSpacing.xl),
-            Text(
-              'Search ${_allFoods.length} common foods',
-              style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+            kbLoad.when(
+              data: (_) => Text(
+                'Search $totalFoods foods (Indian + common)',
+                style: AppTypography.caption.copyWith(color: colors.textTertiary),
+              ),
+              loading: () => Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 16, height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: colors.lime),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Loading food database...',
+                    style: AppTypography.caption.copyWith(color: colors.textTertiary),
+                  ),
+                ],
+              ),
+              error: (_, __) => Text(
+                'Search common foods',
+                style: AppTypography.caption.copyWith(color: colors.textTertiary),
+              ),
             ),
           ],
 
@@ -701,14 +743,24 @@ class _SearchTabState extends ConsumerState<_SearchTab> {
               child: ListView.builder(
                 itemCount: _results.length,
                 itemBuilder: (_, i) {
-                  final food = _results[i];
+                  final food = _results[i].food;
+                  final score = _results[i].score;
                   return ListTile(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                    title: Text(food['name'] as String, style: AppTypography.bodyMedium),
+                    leading: food.dietary != null
+                        ? Text(
+                            food.dietary == 'veg' ? '🟢' : '🔴',
+                            style: const TextStyle(fontSize: 14),
+                          )
+                        : null,
+                    title: Text(food.name, style: AppTypography.bodyMedium),
                     subtitle: Text(
-                      '${food['cal']} kcal · P${food['p']}g · C${food['c']}g · F${food['f']}g  (${food['serving']})',
-                      style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+                      '${food.cal.toStringAsFixed(0)} kcal · P${food.protein}g · C${food.carbs}g · F${food.fat}g  (${food.serving})',
+                      style: AppTypography.caption.copyWith(color: colors.textTertiary),
                     ),
+                    trailing: score > 0.89
+                        ? Icon(Icons.verified, color: colors.lime, size: 16)
+                        : null,
                     onTap: () => setState(() {
                       _selected = food;
                       _servings = 1.0;
@@ -734,7 +786,7 @@ class _MacroChip extends StatelessWidget {
     return Column(
       children: [
         Text(value, style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w700, color: color)),
-        Text(label, style: AppTypography.overline.copyWith(color: AppColors.textTertiary)),
+        Text(label, style: AppTypography.overline.copyWith(color: context.colors.textTertiary)),
       ],
     );
   }
@@ -743,23 +795,24 @@ class _MacroChip extends StatelessWidget {
 class _AnalyzingIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return AppCard(
-      backgroundColor: AppColors.limeGlow,
-      borderColor: AppColors.lime.withValues(alpha: 0.3),
+      backgroundColor: colors.limeGlow,
+      borderColor: colors.lime.withValues(alpha: 0.3),
       child: Row(
         children: [
-          const SizedBox(
+          SizedBox(
             width: 24,
             height: 24,
             child: CircularProgressIndicator(
               strokeWidth: 2.5,
-              color: AppColors.lime,
+              color: colors.lime,
             ),
           ),
           const SizedBox(width: AppSpacing.md),
           Text(
             'AI is analyzing your meal...',
-            style: AppTypography.bodyMedium.copyWith(color: AppColors.lime),
+            style: AppTypography.bodyMedium.copyWith(color: colors.lime),
           ),
         ],
       ),
@@ -782,10 +835,12 @@ class _AnalysisResultCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final items = (result['items'] as List?) ?? [];
     final totals = result['totals'] as Map? ?? {};
     final score = (result['health_score'] as num?)?.toInt() ?? 0;
     final feedback = result['feedback'] as String? ?? '';
+    final scoreClr = _scoreColor(score, colors);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -798,21 +853,21 @@ class _AnalysisResultCard extends StatelessWidget {
               'AI Analysis Complete',
               style: AppTypography.bodyMedium.copyWith(
                 fontWeight: FontWeight.w700,
-                color: AppColors.success,
+                color: colors.success,
               ),
             ),
             const Spacer(),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: _scoreColor(score).withValues(alpha: 0.1),
+                color: scoreClr.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(AppRadius.full),
-                border: Border.all(color: _scoreColor(score).withValues(alpha: 0.3)),
+                border: Border.all(color: scoreClr.withValues(alpha: 0.3)),
               ),
               child: Text(
                 'Score: $score/10',
                 style: AppTypography.caption.copyWith(
-                  color: _scoreColor(score),
+                  color: scoreClr,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -841,7 +896,7 @@ class _AnalysisResultCard extends StatelessWidget {
                       Text(
                         '${item['quantity_g']}g',
                         style: AppTypography.caption.copyWith(
-                          color: AppColors.textTertiary,
+                          color: colors.textTertiary,
                         ),
                       ),
                     ],
@@ -851,7 +906,7 @@ class _AnalysisResultCard extends StatelessWidget {
                   '${item['calories']} kcal',
                   style: AppTypography.bodyMedium.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: AppColors.warning,
+                    color: colors.warning,
                   ),
                 ),
               ],
@@ -863,13 +918,13 @@ class _AnalysisResultCard extends StatelessWidget {
 
         // Totals
         AppCard(
-          backgroundColor: AppColors.bgTertiary,
+          backgroundColor: colors.bgTertiary,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'TOTALS',
-                style: AppTypography.overline.copyWith(color: AppColors.textTertiary),
+                style: AppTypography.overline.copyWith(color: colors.textTertiary),
               ),
               const SizedBox(height: AppSpacing.md),
               MacroBar(
@@ -900,8 +955,8 @@ class _AnalysisResultCard extends StatelessWidget {
 
         // AI feedback
         AppCard(
-          backgroundColor: AppColors.infoBg,
-          borderColor: AppColors.info.withValues(alpha: 0.3),
+          backgroundColor: colors.infoBg,
+          borderColor: colors.info.withValues(alpha: 0.3),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -911,7 +966,7 @@ class _AnalysisResultCard extends StatelessWidget {
                 child: Text(
                   feedback,
                   style: AppTypography.body.copyWith(
-                    color: AppColors.textSecondary,
+                    color: colors.textSecondary,
                   ),
                 ),
               ),
@@ -930,10 +985,10 @@ class _AnalysisResultCard extends StatelessWidget {
     ).animate().fadeIn(duration: 400.ms);
   }
 
-  Color _scoreColor(int score) {
-    if (score >= 8) return AppColors.success;
-    if (score >= 6) return AppColors.lime;
-    if (score >= 4) return AppColors.warning;
-    return AppColors.error;
+  Color _scoreColor(int score, AppColorsExtension colors) {
+    if (score >= 8) return colors.success;
+    if (score >= 6) return colors.lime;
+    if (score >= 4) return colors.warning;
+    return colors.error;
   }
 }

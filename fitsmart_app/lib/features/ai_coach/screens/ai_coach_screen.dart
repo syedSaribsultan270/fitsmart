@@ -5,13 +5,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../../data/database/database_provider.dart';
-import '../../../features/dashboard/providers/dashboard_provider.dart';
+import '../../../core/theme/theme_extensions.dart';
 import '../../../providers/gemini_provider.dart';
-import '../../../services/gemini_client.dart';
+import '../../../core/utils/mime_utils.dart';
+import '../../../providers/food_knowledge_provider.dart';
+import '../../../services/user_context_service.dart';
 
 class AiCoachScreen extends ConsumerStatefulWidget {
   const AiCoachScreen({super.key});
@@ -26,6 +26,8 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
   final List<_Message> _messages = [];
   final List<Map<String, String>> _history = [];
   bool _isTyping = false;
+  DateTime? _lastSentAt;
+  static const _sendCooldown = Duration(seconds: 3);
 
   static const _prefsKey = 'ai_coach_messages';
   static const _historyKey = 'ai_coach_history';
@@ -63,7 +65,7 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
         if (loaded.isNotEmpty && mounted) {
           setState(() => _messages.addAll(loaded));
         }
-      } catch (_) {}
+      } catch (e) { debugPrint('[AiCoach] load saved messages failed: $e'); }
     }
 
     if (savedHistory != null) {
@@ -72,7 +74,7 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
         _history.addAll(
           list.map((e) => Map<String, String>.from(e as Map)),
         );
-      } catch (_) {}
+      } catch (e) { debugPrint('[AiCoach] load chat history failed: $e'); }
     }
 
     // If nothing was loaded, add welcome message
@@ -120,213 +122,15 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
     super.dispose();
   }
 
-  Future<Map<String, dynamic>> _buildUserContext() async {
-    final nutrition = ref.read(dailyNutritionProvider);
-    final gamification = ref.read(gamificationProvider);
-    final db = ref.read(databaseProvider);
-
-    // ── Full onboarding profile ──────────────────────────────────────────
-    Map<String, dynamic> profile = {};
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonStr = prefs.getString('onboarding_data');
-      if (jsonStr != null) {
-        profile = jsonDecode(jsonStr) as Map<String, dynamic>;
-      }
-    } catch (_) {}
-
-    // ── Today's meals ────────────────────────────────────────────────────
-    String todaysMealsStr = '';
-    try {
-      final meals = await db.getMealsForDate(DateTime.now());
-      if (meals.isNotEmpty) {
-        final mealLines = meals.map((m) =>
-          '${m.mealType}: ${m.name} — ${m.calories.round()} kcal, P:${m.proteinG.toStringAsFixed(0)}g, C:${m.carbsG.toStringAsFixed(0)}g, F:${m.fatG.toStringAsFixed(0)}g (score: ${m.healthScore}/10)').toList();
-        todaysMealsStr = mealLines.join('\n');
-      }
-    } catch (_) {}
-
-    // ── Recent workouts (last 10) ────────────────────────────────────────
-    String recentWorkoutsStr = '';
-    try {
-      final workouts = await db.getRecentWorkouts(limit: 10);
-      if (workouts.isNotEmpty) {
-        final wLines = workouts.map((w) =>
-          '${w.name} — ${(w.durationSeconds / 60).round()} min, ~${w.estimatedCalories.round()} kcal burned (${w.completedAt.toIso8601String().substring(0, 10)})').toList();
-        recentWorkoutsStr = wLines.join('\n');
-      }
-    } catch (_) {}
-
-    // ── Personal records (all PRs) ───────────────────────────────────────
-    String prsStr = '';
-    try {
-      final prs = await db.getAllPrs();
-      if (prs.isNotEmpty) {
-        final prLines = prs.entries.map((e) =>
-          '${e.key}: ${e.value.toStringAsFixed(1)} kg').toList();
-        prsStr = prLines.join('\n');
-      }
-    } catch (_) {}
-
-    // ── Body measurements (latest) ───────────────────────────────────────
-    String bodyMeasurementsStr = '';
-    try {
-      final m = await db.getLatestMeasurement();
-      if (m != null) {
-        final parts = <String>[];
-        if (m.chestCm != null) parts.add('Chest: ${m.chestCm}cm');
-        if (m.waistCm != null) parts.add('Waist: ${m.waistCm}cm');
-        if (m.hipsCm != null) parts.add('Hips: ${m.hipsCm}cm');
-        if (m.bicepCm != null) parts.add('Bicep: ${m.bicepCm}cm');
-        if (m.thighCm != null) parts.add('Thigh: ${m.thighCm}cm');
-        if (m.neckCm != null) parts.add('Neck: ${m.neckCm}cm');
-        if (m.shouldersCm != null) parts.add('Shoulders: ${m.shouldersCm}cm');
-        if (m.calfCm != null) parts.add('Calf: ${m.calfCm}cm');
-        if (parts.isNotEmpty) {
-          bodyMeasurementsStr = '${parts.join(', ')} (measured ${m.measuredAt.toIso8601String().substring(0, 10)})';
-        }
-      }
-    } catch (_) {}
-
-    // ── Weight history (last 30 entries) ─────────────────────────────────
-    String weightHistoryStr = '';
-    try {
-      final weights = await db.getWeightHistory(limit: 30);
-      if (weights.isNotEmpty) {
-        final wLines = weights.take(10).map((w) =>
-          '${w.loggedAt.toIso8601String().substring(0, 10)}: ${w.weightKg.toStringAsFixed(1)} kg${w.note.isNotEmpty ? ' (${w.note})' : ''}').toList();
-        weightHistoryStr = wLines.join('\n');
-        if (weights.length > 1) {
-          final diff = weights.first.weightKg - weights.last.weightKg;
-          weightHistoryStr += '\nTrend: ${diff > 0 ? '+' : ''}${diff.toStringAsFixed(1)} kg over ${weights.length} entries';
-        }
-      }
-    } catch (_) {}
-
-    // ── Water intake today ───────────────────────────────────────────────
-    int waterMl = 0;
-    try {
-      waterMl = await db.getTodaysWater();
-    } catch (_) {}
-
-    // ── All-time stats ───────────────────────────────────────────────────
-    int totalMeals = 0;
-    int totalWorkouts = 0;
-    try {
-      totalMeals = await db.getMealCountAll();
-      totalWorkouts = await db.getWorkoutCountAll();
-    } catch (_) {}
-
-    // ── Active workout plan ──────────────────────────────────────────────
-    String activeWorkoutPlanStr = '';
-    try {
-      final plan = await db.getActiveWorkoutPlan();
-      if (plan != null) {
-        activeWorkoutPlanStr = '${plan.name} (${plan.weeks} weeks)';
-      }
-    } catch (_) {}
-
-    // ── Active meal plan ─────────────────────────────────────────────────
-    String activeMealPlanStr = '';
-    try {
-      final plan = await db.getActiveMealPlan();
-      if (plan != null) {
-        activeMealPlanStr = '${plan.days}-day plan (created ${plan.createdAt.toIso8601String().substring(0, 10)})';
-      }
-    } catch (_) {}
-
-    // ── Recent daily summaries (7 days) ──────────────────────────────────
-    String weeklySummaryStr = '';
-    try {
-      final summaries = await db.getRecentSummaries(days: 7);
-      if (summaries.isNotEmpty) {
-        final sLines = summaries.map((s) =>
-          '${s.date.toIso8601String().substring(0, 10)}: ${s.totalCalories.round()} kcal, P:${s.totalProteinG.round()}g, ${s.workoutsCompleted} workouts, water:${s.waterMl}ml${s.streakDay ? ' ✓streak' : ''}').toList();
-        weeklySummaryStr = sLines.join('\n');
-      }
-    } catch (_) {}
-
-    // ── Badges ───────────────────────────────────────────────────────────
-    String badgesStr = '';
-    if (gamification.unlockedBadges.isNotEmpty) {
-      badgesStr = gamification.unlockedBadges.join(', ');
-    }
-
-    // ── Sleep schedule ───────────────────────────────────────────────────
-    String sleepStr = '';
-    if (profile['bedtimeHour'] != null && profile['wakeHour'] != null) {
-      final bedH = profile['bedtimeHour'] as int;
-      final bedM = profile['bedtimeMin'] as int? ?? 0;
-      final wakeH = profile['wakeHour'] as int;
-      final wakeM = profile['wakeMin'] as int? ?? 0;
-      sleepStr = 'Bedtime: ${bedH.toString().padLeft(2, '0')}:${bedM.toString().padLeft(2, '0')} → Wake: ${wakeH.toString().padLeft(2, '0')}:${wakeM.toString().padLeft(2, '0')}';
-      // Calculate sleep hours
-      int sleepMins = ((wakeH * 60 + wakeM) - (bedH * 60 + bedM));
-      if (sleepMins < 0) sleepMins += 24 * 60;
-      sleepStr += ' (~${(sleepMins / 60).toStringAsFixed(1)} hours)';
-    }
-
-    return {
-      // Full profile
-      'goal': profile['primaryGoal'] ?? 'general_fitness',
-      'gender': profile['gender'],
-      'age': profile['age'],
-      'height_cm': profile['heightCm'],
-      'weight_kg': profile['weightKg'],
-      'body_fat_pct': profile['bodyFatPct'],
-      'target_weight_kg': profile['targetWeightKg'],
-      'weight_change_pace': profile['weightChangePace'],
-      'activity_level': profile['activityLevel'],
-      'target_body_type': profile['targetBodyType'],
-      'workout_days_per_week': profile['workoutDaysPerWeek'],
-      'country': profile['country'],
-      'city': profile['city'],
-      'dietary_restrictions': profile['dietaryRestrictions'],
-      'cuisine_preferences': profile['cuisinePreferences'],
-      'disliked_ingredients': profile['dislikedIngredients'],
-      'monthly_budget_usd': profile['monthlyBudgetUsd'],
-      'sleep_schedule': sleepStr,
-
-      // Nutrition targets & progress
-      'target_calories': nutrition.targetCalories.round(),
-      'target_protein_g': nutrition.targetProtein.round(),
-      'target_carbs_g': nutrition.targetCarbs.round(),
-      'target_fat_g': nutrition.targetFat.round(),
-      'consumed_calories_today': nutrition.consumedCalories.round(),
-      'consumed_protein_today': nutrition.consumedProtein.round(),
-      'consumed_carbs_today': nutrition.consumedCarbs.round(),
-      'consumed_fat_today': nutrition.consumedFat.round(),
-      'water_ml_today': waterMl,
-
-      // Gamification
-      'current_streak': gamification.currentStreak,
-      'longest_streak': gamification.longestStreak,
-      'level': gamification.currentLevel,
-      'level_name': gamification.levelName,
-      'total_xp': gamification.totalXp,
-      'xp_to_next_level': gamification.xpToNextLevel,
-      'streak_freezes_available': gamification.streakFreezesAvailable,
-      if (badgesStr.isNotEmpty) 'unlocked_badges': badgesStr,
-
-      // All-time stats
-      'total_meals_logged': totalMeals,
-      'total_workouts_logged': totalWorkouts,
-
-      // Data sections
-      if (todaysMealsStr.isNotEmpty) 'todays_meals': todaysMealsStr,
-      if (recentWorkoutsStr.isNotEmpty) 'recent_workouts': recentWorkoutsStr,
-      if (prsStr.isNotEmpty) 'personal_records': prsStr,
-      if (bodyMeasurementsStr.isNotEmpty) 'body_measurements': bodyMeasurementsStr,
-      if (weightHistoryStr.isNotEmpty) 'weight_history': weightHistoryStr,
-      if (weeklySummaryStr.isNotEmpty) 'weekly_summary': weeklySummaryStr,
-      if (activeWorkoutPlanStr.isNotEmpty) 'active_workout_plan': activeWorkoutPlanStr,
-      if (activeMealPlanStr.isNotEmpty) 'active_meal_plan': activeMealPlanStr,
-    };
-  }
+  bool get _isCoolingDown =>
+      _lastSentAt != null &&
+      DateTime.now().difference(_lastSentAt!) < _sendCooldown;
 
   Future<void> _sendMessage(String text, {Uint8List? imageBytes, String? mimeType}) async {
     if (text.trim().isEmpty && imageBytes == null) return;
+    if (_isCoolingDown) return; // rate limit
 
+    _lastSentAt = DateTime.now();
     final userText = text.trim().isNotEmpty ? text.trim() : 'Analyze this image';
     setState(() {
       _messages.add(_Message(text: userText, isAi: false, imageBytes: imageBytes));
@@ -337,15 +141,22 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
     _saveChat();
 
     try {
-      final gemini = ref.read(geminiClientProvider);
-      final userContext = await _buildUserContext();
+      final ai = ref.read(aiProvider);
+      final userContext = await UserContextService.buildFullContext(ref);
 
-      final result = await gemini.chat(
+      // RAG: build food knowledge grounding if the message mentions food/nutrition
+      final kb = ref.read(foodKnowledgeProvider);
+      final grounding = kb.isLoaded
+          ? kb.buildGroundingContext(userText, maxResults: 8)
+          : null;
+
+      final result = await ai.chat(
         message: userText,
         userContext: userContext,
         history: _history,
         imageBytes: imageBytes,
         mimeType: mimeType,
+        groundingContext: grounding,
       );
 
       final response = result['response'] as String? ??
@@ -365,30 +176,13 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
         _scrollToBottom();
         _saveChat();
       }
-    } on GeminiException catch (e) {
-      debugPrint('GeminiException in chat: $e');
+    } catch (e) {
+      debugPrint('Chat error: $e');
       if (mounted) {
         setState(() {
           _isTyping = false;
           _messages.add(_Message(
             text: 'Hmm, I\'m having a moment 😅 Tap retry to try again.',
-            isAi: true,
-            isError: true,
-            failedUserText: userText,
-            failedImageBytes: imageBytes,
-            failedMimeType: mimeType,
-          ));
-        });
-        _scrollToBottom();
-        _saveChat();
-      }
-    } catch (e) {
-      debugPrint('Unexpected error in chat: $e');
-      if (mounted) {
-        setState(() {
-          _isTyping = false;
-          _messages.add(_Message(
-            text: 'Oops, ran into a small hiccup! Tap retry to try again 💪',
             isAi: true,
             isError: true,
             failedUserText: userText,
@@ -414,21 +208,11 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
       if (picked == null) return;
 
       final bytes = await picked.readAsBytes();
-      final mimeType = picked.mimeType ?? _mimeTypeFromPath(picked.name);
+      final mimeType = picked.mimeType ?? mimeTypeFromPath(picked.name);
       await _sendMessage(_messageCtrl.text, imageBytes: bytes, mimeType: mimeType);
     } catch (e) {
       debugPrint('Image picker error: $e');
     }
-  }
-
-  /// Infer MIME type from file name/extension.
-  static String _mimeTypeFromPath(String path) {
-    final lower = path.toLowerCase();
-    if (lower.endsWith('.png')) return 'image/png';
-    if (lower.endsWith('.webp')) return 'image/webp';
-    if (lower.endsWith('.gif')) return 'image/gif';
-    if (lower.endsWith('.heic') || lower.endsWith('.heif')) return 'image/heic';
-    return 'image/jpeg';
   }
 
   void _scrollToBottom() {
@@ -445,8 +229,9 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
+      backgroundColor: colors.bgPrimary,
       appBar: AppBar(
         title: Row(
           children: [
@@ -454,9 +239,9 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: AppColors.limeGlow,
+                color: colors.limeGlow,
                 shape: BoxShape.circle,
-                border: Border.all(color: AppColors.lime.withValues(alpha: 0.3)),
+                border: Border.all(color: colors.lime.withValues(alpha: 0.3)),
               ),
               child: const Center(child: Text('🤖', style: TextStyle(fontSize: 18))),
             ),
@@ -473,8 +258,8 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
                     Container(
                       width: 7,
                       height: 7,
-                      decoration: const BoxDecoration(
-                        color: AppColors.success,
+                      decoration: BoxDecoration(
+                        color: colors.success,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -482,7 +267,7 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
                     Text(
                       'Online · Context-aware',
                       style: AppTypography.overline.copyWith(
-                        color: AppColors.textTertiary,
+                        color: colors.textTertiary,
                         fontSize: 9,
                       ),
                     ),
@@ -496,7 +281,7 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
           if (_messages.length > 1)
             IconButton(
               icon: const Icon(Icons.delete_outline_rounded, size: 20),
-              color: AppColors.textTertiary,
+              color: colors.textTertiary,
               tooltip: 'Clear chat',
               onPressed: () {
                 showDialog(
@@ -575,14 +360,14 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceCard,
+                      color: colors.surfaceCard,
                       borderRadius: BorderRadius.circular(AppRadius.full),
-                      border: Border.all(color: AppColors.surfaceCardBorder),
+                      border: Border.all(color: colors.surfaceCardBorder),
                     ),
                     child: Text(
                       _suggestions[i],
                       style: AppTypography.caption
-                          .copyWith(color: AppColors.textSecondary),
+                          .copyWith(color: colors.textSecondary),
                     ),
                   ),
                 ),
@@ -594,9 +379,9 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
           // Input bar
           Container(
             decoration: BoxDecoration(
-              color: AppColors.bgSecondary,
+              color: colors.bgSecondary,
               border:
-                  Border(top: BorderSide(color: AppColors.surfaceCardBorder)),
+                  Border(top: BorderSide(color: colors.surfaceCardBorder)),
             ),
             padding: EdgeInsets.fromLTRB(
               AppSpacing.pagePadding,
@@ -613,15 +398,15 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
                     width: 42,
                     height: 42,
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceCard,
+                      color: colors.surfaceCard,
                       borderRadius: BorderRadius.circular(AppRadius.md),
-                      border: Border.all(color: AppColors.surfaceCardBorder),
+                      border: Border.all(color: colors.surfaceCardBorder),
                     ),
                     child: Icon(
                       Icons.image_outlined,
                       color: _isTyping
-                          ? AppColors.textTertiary
-                          : AppColors.lime,
+                          ? colors.textTertiary
+                          : colors.lime,
                       size: 20,
                     ),
                   ),
@@ -653,15 +438,15 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
                     height: 48,
                     decoration: BoxDecoration(
                       color: _isTyping
-                          ? AppColors.surfaceCard
-                          : AppColors.lime,
+                          ? colors.surfaceCard
+                          : colors.lime,
                       borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
                     child: Icon(
                       Icons.send_rounded,
                       color: _isTyping
-                          ? AppColors.textTertiary
-                          : AppColors.textInverse,
+                          ? colors.textTertiary
+                          : colors.textInverse,
                       size: 20,
                     ),
                   ),
@@ -704,6 +489,7 @@ class _ChatBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
       child: Column(
@@ -723,10 +509,10 @@ class _ChatBubble extends StatelessWidget {
                   margin:
                       const EdgeInsets.only(right: AppSpacing.sm, top: 2),
                   decoration: BoxDecoration(
-                    color: AppColors.limeGlow,
+                    color: colors.limeGlow,
                     shape: BoxShape.circle,
                     border: Border.all(
-                        color: AppColors.lime.withValues(alpha: 0.3)),
+                        color: colors.lime.withValues(alpha: 0.3)),
                   ),
                   child: const Center(
                       child: Text('🤖', style: TextStyle(fontSize: 14))),
@@ -740,8 +526,8 @@ class _ChatBubble extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: message.isAi
-                        ? AppColors.surfaceCard
-                        : AppColors.lime,
+                        ? colors.surfaceCard
+                        : colors.lime,
                     borderRadius: BorderRadius.only(
                       topLeft: const Radius.circular(AppRadius.lg),
                       topRight: const Radius.circular(AppRadius.lg),
@@ -751,7 +537,7 @@ class _ChatBubble extends StatelessWidget {
                           message.isAi ? AppRadius.lg : 4),
                     ),
                     border: message.isAi
-                        ? Border.all(color: AppColors.surfaceCardBorder)
+                        ? Border.all(color: colors.surfaceCardBorder)
                         : null,
                   ),
                   child: Column(
@@ -775,7 +561,7 @@ class _ChatBubble extends StatelessWidget {
                         Text(
                           message.text,
                           style: AppTypography.body.copyWith(
-                            color: AppColors.textInverse,
+                            color: colors.textInverse,
                             height: 1.6,
                           ),
                         ),
@@ -794,19 +580,19 @@ class _ChatBubble extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
-                    color: AppColors.error.withValues(alpha: 0.1),
+                    color: colors.error.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(AppRadius.full),
-                    border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                    border: Border.all(color: colors.error.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.refresh_rounded, color: AppColors.error, size: 16),
+                      Icon(Icons.refresh_rounded, color: colors.error, size: 16),
                       const SizedBox(width: 6),
                       Text(
                         'Retry',
                         style: AppTypography.caption.copyWith(
-                          color: AppColors.error,
+                          color: colors.error,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -831,17 +617,17 @@ class _ChatBubble extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
-                              color: AppColors.limeGlow,
+                              color: colors.limeGlow,
                               borderRadius:
                                   BorderRadius.circular(AppRadius.full),
                               border: Border.all(
                                   color:
-                                      AppColors.lime.withValues(alpha: 0.3)),
+                                      colors.lime.withValues(alpha: 0.3)),
                             ),
                             child: Text(
                               s,
                               style: AppTypography.caption.copyWith(
-                                color: AppColors.lime,
+                                color: colors.lime,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -863,7 +649,7 @@ class _RichText extends StatelessWidget {
 
   // Parses **bold** inline within a line, applying baseStyle to normal text
   // and lime+bold to bold runs.
-  Widget _parseInline(String raw, TextStyle baseStyle) {
+  Widget _parseInline(String raw, TextStyle baseStyle, Color boldColor) {
     final boldRegex = RegExp(r'\*\*(.+?)\*\*');
     final spans = <InlineSpan>[];
     int lastEnd = 0;
@@ -874,7 +660,7 @@ class _RichText extends StatelessWidget {
       spans.add(TextSpan(
         text: m.group(1),
         style: baseStyle.copyWith(
-          color: AppColors.lime,
+          color: boldColor,
           fontWeight: FontWeight.w700,
         ),
       ));
@@ -892,6 +678,7 @@ class _RichText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final lines = text.split('\n');
     final widgets = <Widget>[];
 
@@ -909,11 +696,12 @@ class _RichText extends StatelessWidget {
           child: _parseInline(
             line.substring(4),
             AppTypography.bodyMedium.copyWith(
-              color: AppColors.textPrimary,
+              color: colors.textPrimary,
               fontWeight: FontWeight.w700,
               fontSize: 14.5,
               height: 1.5,
             ),
+            colors.lime,
           ),
         ));
         continue;
@@ -926,11 +714,12 @@ class _RichText extends StatelessWidget {
           child: _parseInline(
             line.substring(3),
             AppTypography.bodyMedium.copyWith(
-              color: AppColors.textPrimary,
+              color: colors.textPrimary,
               fontWeight: FontWeight.w700,
               fontSize: 15.5,
               height: 1.5,
             ),
+            colors.lime,
           ),
         ));
         continue;
@@ -943,6 +732,7 @@ class _RichText extends StatelessWidget {
           child: _parseInline(
             line.substring(2),
             AppTypography.h3.copyWith(height: 1.4),
+            colors.lime,
           ),
         ));
         continue;
@@ -962,7 +752,7 @@ class _RichText extends StatelessWidget {
               Text(
                 '•  ',
                 style: AppTypography.body.copyWith(
-                  color: AppColors.lime,
+                  color: colors.lime,
                   height: 1.6,
                   fontWeight: FontWeight.w700,
                 ),
@@ -971,9 +761,10 @@ class _RichText extends StatelessWidget {
                 child: _parseInline(
                   content,
                   AppTypography.body.copyWith(
-                    color: AppColors.textPrimary,
+                    color: colors.textPrimary,
                     height: 1.6,
                   ),
+                  colors.lime,
                 ),
               ),
             ],
@@ -986,9 +777,10 @@ class _RichText extends StatelessWidget {
       widgets.add(_parseInline(
         line,
         AppTypography.body.copyWith(
-          color: AppColors.textPrimary,
+          color: colors.textPrimary,
           height: 1.6,
         ),
+        colors.lime,
       ));
     }
 
@@ -1026,6 +818,7 @@ class _TypingIndicatorState extends State<_TypingIndicator>
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
       child: Row(
@@ -1036,7 +829,7 @@ class _TypingIndicatorState extends State<_TypingIndicator>
             height: 32,
             margin: const EdgeInsets.only(right: AppSpacing.sm, top: 2),
             decoration: BoxDecoration(
-              color: AppColors.limeGlow,
+              color: colors.limeGlow,
               shape: BoxShape.circle,
             ),
             child:
@@ -1046,14 +839,14 @@ class _TypingIndicatorState extends State<_TypingIndicator>
             padding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: AppColors.surfaceCard,
+              color: colors.surfaceCard,
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(AppRadius.lg),
                 topRight: Radius.circular(AppRadius.lg),
                 bottomRight: Radius.circular(AppRadius.lg),
                 bottomLeft: Radius.circular(4),
               ),
-              border: Border.all(color: AppColors.surfaceCardBorder),
+              border: Border.all(color: colors.surfaceCardBorder),
             ),
             child: AnimatedBuilder(
               animation: _controller,
@@ -1075,7 +868,7 @@ class _TypingIndicatorState extends State<_TypingIndicator>
                         margin:
                             const EdgeInsets.symmetric(horizontal: 2),
                         decoration: BoxDecoration(
-                          color: AppColors.textTertiary,
+                          color: colors.textTertiary,
                           shape: BoxShape.circle,
                         ),
                       ),
