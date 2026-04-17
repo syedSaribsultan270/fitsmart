@@ -1,0 +1,345 @@
+/* ==========================================================================
+   Liquid Glass Overlays
+   Popover, Tooltip, Sheet — iOS 26 / macOS Tahoe style
+   ========================================================================== */
+
+
+/* ================================================================
+   GlassPopover
+   ================================================================ */
+
+.glass-popover {
+  position: relative;
+  background: var(--glass-bg-thick);
+  backdrop-filter: blur(var(--blur-xl)) saturate(200%);
+  -webkit-backdrop-filter: blur(var(--blur-xl)) saturate(200%);
+  border-radius: var(--r-lg);
+  border: 0.5px solid var(--glass-border);
+  box-shadow: var(--glass-shadow-lg), var(--glass-specular);
+  animation: dropdown-in var(--motion) var(--spring) both;
+}
+
+.glass-popover__content {
+  padding: var(--sp-4);
+}
+
+/* Arrow base */
+.glass-popover__arrow {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-style: solid;
+}
+
+/* Arrow: top (arrow points up, popover below trigger) */
+.glass-popover--arrow-top .glass-popover__arrow {
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 0 8px 8px 8px;
+  border-color: transparent transparent var(--glass-bg-thick) transparent;
+  filter: drop-shadow(0 -1px 1px rgba(0, 0, 0, 0.04));
+}
+
+/* Arrow: bottom (arrow points down, popover above trigger) */
+.glass-popover--arrow-bottom .glass-popover__arrow {
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 8px 8px 0 8px;
+  border-color: var(--glass-bg-thick) transparent transparent transparent;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.04));
+}
+
+/* Arrow: left (arrow points left, popover to the right of trigger) */
+.glass-popover--arrow-left .glass-popover__arrow {
+  left: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-width: 8px 8px 8px 0;
+  border-color: transparent var(--glass-bg-thick) transparent transparent;
+  filter: drop-shadow(-1px 0 1px rgba(0, 0, 0, 0.04));
+}
+
+/* Arrow: right (arrow points right, popover to the left of trigger) */
+.glass-popover--arrow-right .glass-popover__arrow {
+  right: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-width: 8px 0 8px 8px;
+  border-color: transparent transparent transparent var(--glass-bg-thick);
+  filter: drop-shadow(1px 0 1px rgba(0, 0, 0, 0.04));
+}
+
+
+/* ================================================================
+   Dropdown entrance animation (reused from Glass.css if available)
+   ================================================================ */
+
+@keyframes dropdown-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+
+/* ================================================================
+   GlassTooltip
+   ================================================================ */
+
+.glass-tooltip-trigger {
+  position: relative;
+  display: inline-flex;
+}
+
+.glass-tooltip {
+  position: absolute;
+  z-index: 9999;
+  white-space: nowrap;
+  font: var(--text-caption1);
+  color: var(--label);
+  padding: 6px 10px;
+  background: var(--glass-bg-thick);
+  backdrop-filter: blur(var(--blur-lg)) saturate(200%);
+  -webkit-backdrop-filter: blur(var(--blur-lg)) saturate(200%);
+  border-radius: var(--r-md);
+  border: 0.5px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), var(--glass-specular);
+  pointer-events: none;
+  animation: tooltip-in var(--motion-fast) var(--spring-soft) both;
+}
+
+@keyframes tooltip-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Tooltip arrow base */
+.glass-tooltip__arrow {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-style: solid;
+}
+
+/* Position: top (tooltip above trigger) */
+.glass-tooltip--top {
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform-origin: bottom center;
+}
+
+/* Re-apply final animation state to keep it centered */
+.glass-tooltip--top {
+  animation-name: tooltip-in-top;
+}
+
+@keyframes tooltip-in-top {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+.glass-tooltip--top .glass-tooltip__arrow {
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px 5px 0 5px;
+  border-color: var(--glass-bg-thick) transparent transparent transparent;
+}
+
+/* Position: bottom (tooltip below trigger) */
+.glass-tooltip--bottom {
+  top: calc(100% + 8px);
+  left: 50%;
+  transform-origin: top center;
+}
+
+.glass-tooltip--bottom {
+  animation-name: tooltip-in-bottom;
+}
+
+@keyframes tooltip-in-bottom {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+.glass-tooltip--bottom .glass-tooltip__arrow {
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 0 5px 5px 5px;
+  border-color: transparent transparent var(--glass-bg-thick) transparent;
+}
+
+/* Position: left (tooltip to the left of trigger) */
+.glass-tooltip--left {
+  right: calc(100% + 8px);
+  top: 50%;
+  transform-origin: right center;
+}
+
+.glass-tooltip--left {
+  animation-name: tooltip-in-left;
+}
+
+@keyframes tooltip-in-left {
+  0% {
+    opacity: 0;
+    transform: translateY(-50%) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+  }
+}
+
+.glass-tooltip--left .glass-tooltip__arrow {
+  right: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-width: 5px 0 5px 5px;
+  border-color: transparent transparent transparent var(--glass-bg-thick);
+}
+
+/* Position: right (tooltip to the right of trigger) */
+.glass-tooltip--right {
+  left: calc(100% + 8px);
+  top: 50%;
+  transform-origin: left center;
+}
+
+.glass-tooltip--right {
+  animation-name: tooltip-in-right;
+}
+
+@keyframes tooltip-in-right {
+  0% {
+    opacity: 0;
+    transform: translateY(-50%) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+  }
+}
+
+.glass-tooltip--right .glass-tooltip__arrow {
+  left: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-width: 5px 5px 5px 0;
+  border-color: transparent var(--glass-bg-thick) transparent transparent;
+}
+
+
+/* ================================================================
+   GlassSheet
+   ================================================================ */
+
+.glass-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: sheet-backdrop-in var(--motion) var(--ease-io) both;
+}
+
+.glass-sheet-backdrop--out {
+  animation: sheet-backdrop-out var(--motion-slow) var(--ease-io) both;
+}
+
+@keyframes sheet-backdrop-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes sheet-backdrop-out {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.glass-sheet {
+  width: 100%;
+  max-width: 540px;
+  background: var(--glass-bg-thick);
+  backdrop-filter: blur(var(--blur-xl)) saturate(200%);
+  -webkit-backdrop-filter: blur(var(--blur-xl)) saturate(200%);
+  border-radius: var(--r-2xl) var(--r-2xl) 0 0;
+  border: 0.5px solid var(--glass-border);
+  border-bottom: none;
+  box-shadow: var(--glass-shadow-lg), var(--glass-specular);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: sheet-slide-in var(--motion-slow) var(--spring-soft) both;
+}
+
+.glass-sheet--out {
+  animation: sheet-slide-out var(--motion-slow) var(--ease-io) both;
+}
+
+@keyframes sheet-slide-in {
+  0% {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sheet-slide-out {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+}
+
+/* Drag indicator pill */
+.glass-sheet__indicator {
+  width: 40px;
+  height: 5px;
+  border-radius: var(--r-pill);
+  background: var(--fill-secondary);
+  margin: var(--sp-2) auto var(--sp-1);
+  flex-shrink: 0;
+}
+
+.glass-sheet__content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--sp-4) var(--sp-5) var(--sp-6);
+}

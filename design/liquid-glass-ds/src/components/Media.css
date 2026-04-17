@@ -1,0 +1,335 @@
+/* ==========================================================================
+   Media Components — Liquid Glass Design System
+   Image, Gallery, Image Well
+   ========================================================================== */
+
+
+/* ================================================================
+   Glass Image
+   ================================================================ */
+
+.glass-image {
+  position: relative;
+  overflow: hidden;
+  display: block;
+}
+
+.glass-image__placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.glass-image__placeholder--skeleton {
+  background: var(--fill-secondary);
+}
+
+.glass-image__placeholder--blur {
+  background: var(--placeholder-color, var(--fill-secondary));
+  backdrop-filter: blur(var(--blur-lg));
+  -webkit-backdrop-filter: blur(var(--blur-lg));
+}
+
+.glass-image__placeholder--color {
+  background: var(--placeholder-color, var(--fill-secondary));
+}
+
+/* Shimmer animation */
+.glass-image__shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.25) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s var(--ease-io) infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+[data-theme="dark"] .glass-image__shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.06) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+}
+
+/* Image element */
+.glass-image__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 400ms var(--ease-io);
+}
+
+.glass-image__img--loaded {
+  opacity: 1;
+}
+
+
+/* ================================================================
+   Glass Gallery
+   ================================================================ */
+
+.glass-gallery {
+  position: relative;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--blur-lg)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--blur-lg)) saturate(180%);
+  border: 0.5px solid var(--glass-border);
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  box-shadow: var(--glass-shadow), var(--glass-specular);
+}
+
+/* Counter pill */
+.glass-gallery__counter {
+  position: absolute;
+  top: var(--sp-3);
+  right: var(--sp-3);
+  z-index: 3;
+  padding: 4px 10px;
+  font: var(--text-caption1);
+  font-weight: var(--fw-medium);
+  color: #fff;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(var(--blur-sm)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--blur-sm)) saturate(150%);
+  border-radius: var(--r-pill);
+  pointer-events: none;
+}
+
+/* Scroll area */
+.glass-gallery__scroll {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  /* Hide scrollbar */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.glass-gallery__scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.glass-gallery__item {
+  flex-shrink: 0;
+  width: 100%;
+  scroll-snap-align: center;
+}
+
+.glass-gallery__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Navigation arrows */
+.glass-gallery__arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 0.5px solid var(--glass-border-inner);
+  background: var(--glass-bg-thick);
+  backdrop-filter: blur(var(--blur-sm)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--blur-sm)) saturate(150%);
+  box-shadow: var(--glass-shadow);
+  color: var(--label);
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity var(--motion-fast) var(--ease-io),
+    transform var(--motion-fast) var(--spring),
+    background var(--motion-fast) var(--ease-io);
+}
+
+.glass-gallery:hover .glass-gallery__arrow {
+  opacity: 1;
+}
+
+.glass-gallery__arrow:hover {
+  background: var(--glass-bg-hover);
+  transform: translateY(-50%) scale(1.06);
+}
+
+.glass-gallery__arrow:active {
+  transform: translateY(-50%) scale(0.92);
+  transition-duration: 100ms;
+}
+
+.glass-gallery__arrow:disabled {
+  opacity: 0 !important;
+  pointer-events: none;
+}
+
+.glass-gallery__arrow--prev {
+  left: var(--sp-3);
+}
+
+.glass-gallery__arrow--next {
+  right: var(--sp-3);
+}
+
+/* Dots */
+.glass-gallery__dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: var(--sp-3) 0;
+}
+
+.glass-gallery__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  background: var(--label-quaternary);
+  cursor: pointer;
+  transition:
+    width var(--motion) var(--spring),
+    background var(--motion) var(--ease-io);
+}
+
+.glass-gallery__dot--active {
+  width: 8px;
+  height: 8px;
+  background: var(--blue);
+}
+
+.glass-gallery__dot:hover:not(.glass-gallery__dot--active) {
+  background: var(--label-tertiary);
+}
+
+
+/* ================================================================
+   Glass Image Well
+   ================================================================ */
+
+.glass-image-well {
+  position: relative;
+  min-height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed var(--glass-border);
+  border-radius: var(--r-xl);
+  background: var(--glass-inner);
+  backdrop-filter: blur(var(--blur-sm));
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  cursor: pointer;
+  overflow: hidden;
+  transition:
+    border-color var(--motion) var(--ease-io),
+    border-style var(--motion) var(--ease-io),
+    background var(--motion) var(--ease-io),
+    box-shadow var(--motion) var(--ease-io),
+    transform var(--motion) var(--spring-soft);
+}
+
+.glass-image-well:hover {
+  border-color: var(--blue);
+  border-style: solid;
+  background: var(--glass-inner-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--glass-shadow);
+}
+
+.glass-image-well--dragover {
+  border-color: var(--blue);
+  border-style: solid;
+  background: var(--glass-bg-tinted);
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.18);
+}
+
+/* Empty state */
+.glass-image-well__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.glass-image-well__icon {
+  color: var(--label-tertiary);
+  transition: color var(--motion-fast) var(--ease-io);
+}
+
+.glass-image-well:hover .glass-image-well__icon {
+  color: var(--blue);
+}
+
+.glass-image-well__label {
+  font: var(--text-subhead);
+  color: var(--label-secondary);
+}
+
+/* Filled state */
+.glass-image-well--filled {
+  border: none;
+  padding: 0;
+}
+
+.glass-image-well--filled:hover {
+  border: none;
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: var(--glass-shadow-lg);
+}
+
+.glass-image-well__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Hover overlay */
+.glass-image-well__overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--blur-sm)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--blur-sm)) saturate(150%);
+  opacity: 0;
+  transition: opacity var(--motion-fast) var(--ease-io);
+}
+
+.glass-image-well--filled:hover .glass-image-well__overlay {
+  opacity: 1;
+}
+
+.glass-image-well__overlay-text {
+  font: var(--text-headline);
+  color: var(--label);
+}

@@ -1,0 +1,214 @@
+/* ==========================================================================
+   Design Tokens — Apple Liquid Glass Design System
+   Matched to real iOS 26 / macOS Tahoe Liquid Glass
+   ========================================================================== */
+
+:root {
+  /* ---- Font Stacks ---- */
+  --font-system: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
+  --font-rounded: 'SF Pro Rounded', var(--font-system);
+  --font-serif: 'New York', 'Iowan Old Style', Georgia, serif;
+  --font-mono: 'SF Mono', SFMono-Regular, ui-monospace, Menlo, monospace;
+
+  /* ---- Font Weights ---- */
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+
+  /* ---- Type Scale (iOS Large Default) ---- */
+  --text-large-title: 700 34px/41px var(--font-system);
+  --text-title1: 700 28px/34px var(--font-system);
+  --text-title2: 700 22px/28px var(--font-system);
+  --text-title3: 600 20px/25px var(--font-system);
+  --text-headline: 600 17px/22px var(--font-system);
+  --text-body: 400 17px/22px var(--font-system);
+  --text-callout: 400 16px/21px var(--font-system);
+  --text-subhead: 400 15px/20px var(--font-system);
+  --text-footnote: 400 13px/18px var(--font-system);
+  --text-caption1: 400 12px/16px var(--font-system);
+  --text-caption2: 400 11px/13px var(--font-system);
+
+  /* ---- System Colors (Light) ---- */
+  --blue: #007AFF;
+  --green: #34C759;
+  --red: #FF3B30;
+  --orange: #FF9500;
+  --yellow: #FFCC00;
+  --mint: #00C7BE;
+  --teal: #30B0C7;
+  --cyan: #32ADE6;
+  --indigo: #5856D6;
+  --purple: #AF52DE;
+  --pink: #FF2D55;
+  --brown: #A2845E;
+
+  /* ---- Grays ---- */
+  --gray: #8E8E93;
+  --gray2: #AEAEB2;
+  --gray3: #C7C7CC;
+  --gray4: #D1D1D6;
+  --gray5: #E5E5EA;
+  --gray6: #F2F2F7;
+
+  /* ---- Semantic Colors ---- */
+  --label: rgba(0,0,0,0.88);
+  --label-secondary: rgba(60,60,67,0.6);
+  --label-tertiary: rgba(60,60,67,0.33);
+  --label-quaternary: rgba(60,60,67,0.2);
+  --separator: rgba(60,60,67,0.12);
+  --fill: rgba(120,120,128,0.12);
+  --fill-secondary: rgba(120,120,128,0.08);
+  --fill-tertiary: rgba(118,118,128,0.06);
+  --bg-canvas: #f0f0f5;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f2f2f7;
+  --bg-grouped: #f2f2f7;
+  --bg-grouped-secondary: #ffffff;
+
+  /* ================================================================
+     LIQUID GLASS — Light Mode
+     Matched to real iOS 26 Control Center / macOS Tahoe menus
+     ================================================================ */
+
+  /* The main glass: highly translucent white, very heavy blur */
+  --glass-bg: rgba(255, 255, 255, 0.45);
+  --glass-bg-thick: rgba(255, 255, 255, 0.62);
+  --glass-bg-thin: rgba(255, 255, 255, 0.28);
+  --glass-bg-hover: rgba(255, 255, 255, 0.58);
+  --glass-bg-active: rgba(255, 255, 255, 0.72);
+  --glass-bg-tinted: rgba(0, 122, 255, 0.1);
+  --glass-bg-sidebar: rgba(245, 245, 250, 0.78);
+
+  /* Glass within glass (controls inside a glass panel) */
+  --glass-inner: rgba(255, 255, 255, 0.55);
+  --glass-inner-hover: rgba(255, 255, 255, 0.72);
+
+  /* Borders — very subtle, barely visible */
+  --glass-border: rgba(255, 255, 255, 0.45);
+  --glass-border-outer: rgba(0, 0, 0, 0.06);
+  --glass-border-inner: rgba(255, 255, 255, 0.6);
+
+  /* Blur values — these are what make it real */
+  --blur-sm: 16px;
+  --blur-md: 32px;
+  --blur-lg: 48px;
+  --blur-xl: 72px;
+
+  /* Shadows — soft, diffuse, like real glass panels */
+  --glass-shadow:
+    0 0 0 0.5px rgba(0,0,0,0.04),
+    0 2px 8px rgba(0,0,0,0.04),
+    0 8px 24px rgba(0,0,0,0.06);
+  --glass-shadow-lg:
+    0 0 0 0.5px rgba(0,0,0,0.03),
+    0 4px 16px rgba(0,0,0,0.06),
+    0 16px 48px rgba(0,0,0,0.08);
+  --glass-shadow-inner:
+    inset 0 0.5px 0 rgba(255,255,255,0.5);
+
+  /* Specular highlight — the bright edge on top of glass */
+  --glass-specular:
+    inset 0 1px 0 rgba(255,255,255,0.55),
+    inset 0 0 0 0.5px rgba(255,255,255,0.25);
+
+  /* ---- Spacing ---- */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+  --sp-12: 48px;
+  --sp-16: 64px;
+
+  /* ---- Radii — Squircle-inspired (continuous corners) ---- */
+  --r-xs: 8px;
+  --r-sm: 12px;
+  --r-md: 16px;
+  --r-lg: 22px;
+  --r-xl: 28px;
+  --r-2xl: 36px;
+  --r-pill: 9999px;
+
+  /* ---- Transitions ---- */
+  --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 150ms;
+  --dur: 220ms;
+  --dur-slow: 350ms;
+}
+
+
+/* ================================================================
+   DARK MODE
+   ================================================================ */
+
+[data-theme="dark"] {
+  --blue: #0A84FF;
+  --green: #30D158;
+  --red: #FF453A;
+  --orange: #FF9F0A;
+  --yellow: #FFD60A;
+  --mint: #63E6E2;
+  --teal: #40CBE0;
+  --cyan: #64D2FF;
+  --indigo: #5E5CE6;
+  --purple: #BF5AF2;
+  --pink: #FF375F;
+  --brown: #AC8E68;
+
+  --gray: #8E8E93;
+  --gray2: #636366;
+  --gray3: #48484A;
+  --gray4: #3A3A3C;
+  --gray5: #2C2C2E;
+  --gray6: #1C1C1E;
+
+  --label: rgba(255,255,255,0.92);
+  --label-secondary: rgba(235,235,245,0.6);
+  --label-tertiary: rgba(235,235,245,0.33);
+  --label-quaternary: rgba(235,235,245,0.2);
+  --separator: rgba(84,84,88,0.36);
+  --fill: rgba(120,120,128,0.24);
+  --fill-secondary: rgba(120,120,128,0.18);
+  --fill-tertiary: rgba(118,118,128,0.12);
+  --bg-canvas: #000000;
+  --bg-primary: #1c1c1e;
+  --bg-secondary: #2c2c2e;
+  --bg-grouped: #000000;
+  --bg-grouped-secondary: #1c1c1e;
+
+  /* Glass — Dark: tinted dark, still very translucent */
+  --glass-bg: rgba(38, 38, 42, 0.55);
+  --glass-bg-thick: rgba(38, 38, 42, 0.72);
+  --glass-bg-thin: rgba(38, 38, 42, 0.35);
+  --glass-bg-hover: rgba(50, 50, 56, 0.62);
+  --glass-bg-active: rgba(60, 60, 66, 0.72);
+  --glass-bg-tinted: rgba(10, 132, 255, 0.15);
+  --glass-bg-sidebar: rgba(28, 28, 30, 0.82);
+
+  --glass-inner: rgba(255, 255, 255, 0.08);
+  --glass-inner-hover: rgba(255, 255, 255, 0.14);
+
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-border-outer: rgba(255, 255, 255, 0.04);
+  --glass-border-inner: rgba(255, 255, 255, 0.12);
+
+  --glass-shadow:
+    0 0 0 0.5px rgba(0,0,0,0.2),
+    0 2px 8px rgba(0,0,0,0.15),
+    0 8px 24px rgba(0,0,0,0.2);
+  --glass-shadow-lg:
+    0 0 0 0.5px rgba(0,0,0,0.2),
+    0 4px 16px rgba(0,0,0,0.2),
+    0 16px 48px rgba(0,0,0,0.3);
+  --glass-shadow-inner:
+    inset 0 0.5px 0 rgba(255,255,255,0.08);
+
+  --glass-specular:
+    inset 0 1px 0 rgba(255,255,255,0.08),
+    inset 0 0 0 0.5px rgba(255,255,255,0.05);
+}

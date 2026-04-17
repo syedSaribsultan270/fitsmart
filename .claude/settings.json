@@ -1,0 +1,44 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(export PATH=\"$PATH:/Users/vyro/development/flutter/bin\")",
+      "Bash(flutter analyze*)",
+      "Bash(flutter test*)",
+      "Bash(flutter pub get*)",
+      "Bash(dart run build_runner*)",
+      "Bash(dart format*)",
+      "Bash(git add fitsmart_app/)",
+      "Bash(git commit:*)",
+      "Bash(git push origin main --force)",
+      "Bash(firebase deploy --only firestore:rules)",
+      "Bash(firebase auth:export /dev/null --format=json)",
+      "Bash(firebase firestore:rules:list)",
+      "Bash(firebase firestore:rules:get)",
+      "Bash(firebase firestore --help)",
+      "Bash(firebase firestore:databases:list)",
+      "Bash(bash /Users/vyro/Downloads/fitsmart2.0/.claude/hooks/post-edit-analyze.sh)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/vyro/Downloads/fitsmart2.0/.claude/hooks/post-edit-analyze.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /Users/vyro/Downloads/fitsmart2.0/.claude/hooks/post-edit-analyze.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

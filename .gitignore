@@ -1,0 +1,27 @@
+# macOS
+.DS_Store
+
+# Editors
+.idea/
+.vscode/
+*.swp
+
+# Large binaries — never commit these
+ml/*.task
+ml/training_data/
+
+# React DS reference — kept as design source of truth; build artifacts excluded
+design/liquid-glass-ds/node_modules/
+design/liquid-glass-ds/dist/
+design/liquid-glass-ds/.next/
+
+# Secrets
+.env
+.env.local
+*.key
+*.pem
+
+# Flutter build — handled by fitsmart_app/.gitignore but double-guard
+fitsmart_app/build/
+fitsmart_app/.dart_tool/
+fitsmart_app/.flutter-plugins-dependencies

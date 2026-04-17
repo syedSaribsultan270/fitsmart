@@ -1,0 +1,153 @@
+/* ==========================================================================
+   Data Components — Liquid Glass Design System
+   Rating, Token Field, Activity Rings
+   ========================================================================== */
+
+
+/* ================================================================
+   Glass Rating
+   ================================================================ */
+
+.glass-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.glass-rating--interactive {
+  cursor: pointer;
+}
+
+.glass-rating__glyph {
+  display: block;
+  flex-shrink: 0;
+  transition: transform var(--motion-fast) var(--spring);
+}
+
+.glass-rating--interactive .glass-rating__glyph:hover {
+  transform: scale(1.15);
+}
+
+.glass-rating--interactive .glass-rating__glyph:active {
+  transform: scale(0.92);
+  transition-duration: 100ms;
+}
+
+
+/* ================================================================
+   Glass Token Field
+   ================================================================ */
+
+.glass-token-field {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 6px 8px;
+  background: var(--glass-inner);
+  backdrop-filter: blur(var(--blur-sm));
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  border: 0.5px solid var(--glass-border);
+  border-radius: var(--r-lg);
+  transition:
+    border-color var(--motion) var(--ease-io),
+    box-shadow var(--motion) var(--ease-io),
+    background var(--motion) var(--ease-io);
+}
+
+.glass-token-field:focus-within {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.18);
+  background: var(--glass-inner-hover);
+}
+
+/* Token Pill */
+.glass-token-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--blur-sm)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--blur-sm)) saturate(150%);
+  border: 0.5px solid var(--glass-border-inner);
+  border-radius: var(--r-pill);
+  font: var(--text-caption1);
+  color: var(--label);
+  animation: token-in var(--motion) var(--spring) both;
+}
+
+@keyframes token-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.glass-token-pill__label {
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.glass-token-pill__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--label-tertiary);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition:
+    background var(--motion-fast) var(--ease-io),
+    color var(--motion-fast) var(--ease-io),
+    transform var(--motion-fast) var(--spring);
+}
+
+.glass-token-pill__remove:hover {
+  background: rgba(255, 59, 48, 0.15);
+  color: var(--red);
+}
+
+.glass-token-pill__remove:active {
+  transform: scale(0.85);
+  transition-duration: 100ms;
+}
+
+/* Inline input */
+.glass-token-field__input {
+  flex: 1;
+  min-width: 80px;
+  border: none;
+  background: transparent;
+  font: var(--text-body);
+  color: var(--label);
+  outline: none;
+  padding: 4px 2px;
+}
+
+.glass-token-field__input::placeholder {
+  color: var(--label-tertiary);
+}
+
+
+/* ================================================================
+   Glass Activity Rings
+   ================================================================ */
+
+.glass-activity-rings {
+  display: block;
+}
+
+.glass-ring__arc {
+  transition: stroke-dashoffset 800ms var(--ease-io);
+}

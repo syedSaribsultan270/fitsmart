@@ -1,0 +1,642 @@
+/* ==========================================================================
+   Liquid Glass Components
+   iOS 26 / macOS Tahoe — with proper spring motion
+   ========================================================================== */
+
+
+/* ================================================================
+   Motion Tokens (local)
+   Apple's system easing: ease-in-out with a subtle bounce overshoot
+   ================================================================ */
+
+:root {
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --spring-soft: cubic-bezier(0.25, 1.2, 0.5, 1);
+  --ease-io: cubic-bezier(0.42, 0, 0.58, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-fast: 200ms;
+  --motion: 300ms;
+  --motion-slow: 450ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --spring: var(--ease-io);
+    --spring-soft: var(--ease-io);
+    --motion-fast: 0ms;
+    --motion: 0ms;
+    --motion-slow: 0ms;
+  }
+}
+
+
+/* ================================================================
+   Glass Panel — The core surface
+   ================================================================ */
+
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--blur-lg)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--blur-lg)) saturate(180%);
+  border-radius: var(--r-xl);
+  border: 0.5px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), var(--glass-specular);
+  transition:
+    background var(--motion) var(--ease-io),
+    border-color var(--motion) var(--ease-io),
+    box-shadow var(--motion) var(--ease-io),
+    transform var(--motion) var(--spring-soft);
+}
+
+.glass--padded { padding: var(--sp-5); }
+.glass--thick  { background: var(--glass-bg-thick); }
+.glass--thin   { background: var(--glass-bg-thin); }
+.glass--clear  {
+  background: rgba(255,255,255,0.12);
+  backdrop-filter: blur(var(--blur-xl)) saturate(200%);
+  -webkit-backdrop-filter: blur(var(--blur-xl)) saturate(200%);
+}
+
+[data-theme="dark"] .glass--clear {
+  background: rgba(255,255,255,0.04);
+}
+
+
+/* ================================================================
+   Glass Card — Interactive tile
+   ================================================================ */
+
+.glass-card {
+  display: block;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--blur-lg)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--blur-lg)) saturate(180%);
+  border-radius: var(--r-xl);
+  border: 0.5px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), var(--glass-specular);
+  padding: var(--sp-5);
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition:
+    background var(--motion) var(--ease-io),
+    box-shadow var(--motion) var(--ease-io),
+    transform var(--motion) var(--spring-soft);
+}
+
+.glass-card:hover {
+  background: var(--glass-bg-hover);
+  box-shadow: var(--glass-shadow-lg), var(--glass-specular);
+  transform: translateY(-2px) scale(1.01);
+  text-decoration: none;
+}
+
+.glass-card:active {
+  transform: scale(0.97);
+  background: var(--glass-bg-active);
+  transition-duration: var(--motion-fast);
+}
+
+.glass-card h3 { font: var(--text-headline); margin-bottom: var(--sp-1); }
+.glass-card p   { font: var(--text-subhead); color: var(--label-secondary); margin: 0; }
+
+
+/* ================================================================
+   Glass Button
+   ================================================================ */
+
+.glass-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  font: var(--text-body);
+  font-weight: var(--fw-semibold);
+  border: none;
+  cursor: pointer;
+  position: relative;
+  line-height: 1;
+  transition:
+    background var(--motion-fast) var(--ease-io),
+    box-shadow var(--motion-fast) var(--ease-io),
+    transform var(--motion-fast) var(--spring),
+    filter var(--motion-fast) var(--ease-io),
+    opacity var(--motion-fast) var(--ease-io);
+}
+
+.glass-btn:hover  { transform: scale(1.03); }
+.glass-btn:active { transform: scale(0.94); transition-duration: 100ms; }
+.glass-btn:disabled { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
+
+/* Sizes */
+.glass-btn--sm { font: var(--text-subhead); font-weight: 600; padding: 7px 16px; min-height: 32px; border-radius: var(--r-md); }
+.glass-btn--md { padding: 10px 22px; min-height: 44px; border-radius: var(--r-lg); }
+.glass-btn--lg { padding: 14px 28px; min-height: 50px; border-radius: var(--r-xl); font-size: 17px; }
+.glass-btn--pill { border-radius: var(--r-pill) !important; }
+.glass-btn--icon { width: 44px; height: 44px; padding: 0; border-radius: 50%; }
+.glass-btn--icon.glass-btn--sm { width: 32px; height: 32px; }
+.glass-btn--icon.glass-btn--lg { width: 56px; height: 56px; }
+
+/* Glass variant */
+.glass-btn--glass {
+  background: var(--glass-inner);
+  backdrop-filter: blur(var(--blur-sm)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--blur-sm)) saturate(150%);
+  border: 0.5px solid var(--glass-border-inner);
+  box-shadow: var(--glass-shadow-inner), 0 1px 3px rgba(0,0,0,0.04);
+  color: var(--label);
+}
+.glass-btn--glass:hover {
+  background: var(--glass-inner-hover);
+  box-shadow: var(--glass-shadow-inner), 0 2px 6px rgba(0,0,0,0.06);
+}
+
+/* Filled */
+.glass-btn--filled {
+  background: var(--btn-color, var(--blue));
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 1px 3px rgba(0,0,0,0.1);
+}
+.glass-btn--filled:hover {
+  filter: brightness(1.08);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), 0 2px 8px rgba(0,0,0,0.12);
+}
+
+/* Tinted */
+.glass-btn--tinted {
+  background: var(--glass-bg-tinted);
+  backdrop-filter: blur(var(--blur-sm));
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  color: var(--blue);
+  border: 0.5px solid rgba(0,122,255,0.08);
+}
+.glass-btn--tinted:hover { background: rgba(0,122,255,0.16); }
+
+/* Plain */
+.glass-btn--plain { background: transparent; color: var(--blue); }
+.glass-btn--plain:hover { background: var(--fill-tertiary); }
+
+
+/* ================================================================
+   Toggle — Glass track, springy thumb, GLASS ON INTERACT
+   The track turns glass (blur + translucent) when pressed/dragging
+   ================================================================ */
+
+.glass-toggle {
+  display: inline-block;
+  position: relative;
+  width: 51px;
+  height: 31px;
+  flex-shrink: 0;
+}
+
+.glass-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+
+.glass-toggle__track {
+  position: absolute;
+  inset: 0;
+  background: var(--fill-secondary);
+  border: 0.5px solid var(--glass-border);
+  border-radius: 16px;
+  cursor: pointer;
+  transition:
+    background var(--motion) var(--ease-io),
+    border-color var(--motion) var(--ease-io),
+    backdrop-filter var(--motion) var(--ease-io),
+    box-shadow var(--motion) var(--ease-io);
+}
+
+.glass-toggle__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 27px;
+  height: 27px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15), 0 0 0 0.5px rgba(0,0,0,0.04);
+  pointer-events: none;
+  /* THE KEY: springy bounce on slide */
+  transition:
+    transform var(--motion) var(--spring),
+    width var(--motion-fast) var(--ease-io),
+    box-shadow var(--motion-fast) var(--ease-io);
+}
+
+/* Checked → green, thumb slides right with spring bounce */
+.glass-toggle input:checked + .glass-toggle__track {
+  background: var(--green);
+  border-color: transparent;
+}
+
+.glass-toggle input:checked + .glass-toggle__track .glass-toggle__thumb {
+  transform: translateX(20px);
+}
+
+/* ACTIVE / PRESSED → track turns glass, thumb stretches (iOS squish) */
+.glass-toggle__track:active,
+.glass-toggle--active .glass-toggle__track {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--blur-md)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--blur-md)) saturate(180%);
+  border-color: var(--glass-border);
+  box-shadow: var(--glass-specular), var(--glass-shadow);
+}
+
+.glass-toggle__track:active .glass-toggle__thumb,
+.glass-toggle--active .glass-toggle__track .glass-toggle__thumb {
+  width: 33px;
+  border-radius: 14px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.18), 0 0 0 0.5px rgba(0,0,0,0.04);
+}
+
+/* When checked AND active, stretch toward left instead */
+.glass-toggle input:checked + .glass-toggle__track:active .glass-toggle__thumb,
+.glass-toggle input:checked + .glass-toggle--active .glass-toggle__track .glass-toggle__thumb {
+  transform: translateX(14px);
+}
+
+/* checked + active track still glass but with green tint */
+.glass-toggle input:checked + .glass-toggle__track:active,
+.glass-toggle input:checked + .glass-toggle--active .glass-toggle__track {
+  background: rgba(52, 199, 89, 0.55);
+  backdrop-filter: blur(var(--blur-md)) saturate(200%);
+  -webkit-backdrop-filter: blur(var(--blur-md)) saturate(200%);
+}
+
+.glass-toggle--disabled { opacity: 0.35; pointer-events: none; }
+
+
+/* ================================================================
+   Glass Input
+   ================================================================ */
+
+.glass-input {
+  font: var(--text-body);
+  height: 44px;
+  padding: 0 var(--sp-4);
+  background: var(--glass-inner);
+  backdrop-filter: blur(var(--blur-sm));
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  border: 0.5px solid var(--glass-border);
+  border-radius: var(--r-md);
+  color: var(--label);
+  width: 100%;
+  transition:
+    border-color var(--motion) var(--ease-io),
+    box-shadow var(--motion) var(--ease-io),
+    background var(--motion) var(--ease-io);
+}
+
+.glass-input:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(0,122,255,0.18);
+  background: var(--glass-inner-hover);
+}
+
+.glass-input::placeholder { color: var(--label-tertiary); }
+.glass-input:disabled { opacity: 0.35; cursor: not-allowed; }
+
+
+/* ================================================================
+   Glass Segment — Springy active indicator
+   ================================================================ */
+
+.glass-segment {
+  display: inline-flex;
+  position: relative;
+  background: var(--glass-inner);
+  backdrop-filter: blur(var(--blur-sm));
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  border: 0.5px solid var(--glass-border);
+  border-radius: var(--r-lg);
+  padding: 3px;
+  gap: 2px;
+}
+
+/* Sliding pill — the active indicator that glides between segments */
+.glass-segment__pill {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  border-radius: calc(var(--r-lg) - 3px);
+  background: var(--bg-primary);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 0 0 0.5px rgba(0,0,0,0.03);
+  z-index: 0;
+  pointer-events: none;
+  /* Smooth spring slide between positions */
+  transition:
+    left var(--motion) var(--spring-soft),
+    width var(--motion) var(--spring-soft);
+}
+
+.glass-segment__item {
+  font: var(--text-subhead);
+  font-weight: 500;
+  padding: 7px 18px;
+  border-radius: calc(var(--r-lg) - 3px);
+  color: var(--label-secondary);
+  position: relative;
+  z-index: 1;
+  transition:
+    color var(--motion-fast) var(--ease-io),
+    transform var(--motion-fast) var(--spring);
+}
+
+.glass-segment__item:hover { color: var(--label); }
+
+.glass-segment__item:active {
+  transform: scale(0.95);
+  transition-duration: 100ms;
+}
+
+.glass-segment__item.active {
+  color: var(--label);
+  font-weight: 600;
+}
+
+
+/* ================================================================
+   Glass Slider — GLASS ON DRAG
+   Thumb gets a glass halo when active
+   ================================================================ */
+
+.glass-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--fill-secondary);
+  transition: height var(--motion-fast) var(--ease-io);
+}
+
+/* Track grows slightly on hover */
+.glass-slider:hover { height: 6px; }
+
+.glass-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #fff;
+  border: 0.5px solid rgba(0,0,0,0.04);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15), 0 0 0 0.5px rgba(0,0,0,0.04);
+  cursor: pointer;
+  /* Springy scale + glass halo appear */
+  transition:
+    transform var(--motion-fast) var(--spring),
+    box-shadow var(--motion) var(--ease-io),
+    background var(--motion) var(--ease-io);
+}
+
+.glass-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.12);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.18), 0 0 0 0.5px rgba(0,0,0,0.04);
+}
+
+/* ACTIVE: thumb scales up, gets a glass glow ring */
+.glass-slider:active::-webkit-slider-thumb {
+  transform: scale(1.25);
+  background: rgba(255,255,255,0.85);
+  box-shadow:
+    0 0 0 6px rgba(0,122,255,0.12),
+    0 0 0 1px rgba(255,255,255,0.4),
+    0 4px 12px rgba(0,0,0,0.15);
+  transition-duration: 100ms;
+}
+
+/* Firefox */
+.glass-slider::-moz-range-thumb {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #fff;
+  border: 0.5px solid rgba(0,0,0,0.04);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  cursor: pointer;
+  transition: transform var(--motion-fast) var(--spring), box-shadow var(--motion) var(--ease-io);
+}
+
+.glass-slider:active::-moz-range-thumb {
+  transform: scale(1.25);
+  box-shadow:
+    0 0 0 6px rgba(0,122,255,0.12),
+    0 0 0 1px rgba(255,255,255,0.4),
+    0 4px 12px rgba(0,0,0,0.15);
+}
+
+
+/* ================================================================
+   Glass Search — Pill-shaped
+   ================================================================ */
+
+.glass-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.glass-search__icon {
+  position: absolute;
+  left: 14px;
+  width: 16px;
+  height: 16px;
+  color: var(--label-tertiary);
+  pointer-events: none;
+  transition: color var(--motion-fast) var(--ease-io);
+}
+
+.glass-search:focus-within .glass-search__icon {
+  color: var(--blue);
+}
+
+.glass-search__input {
+  font: var(--text-body);
+  height: 40px;
+  padding: 0 var(--sp-4) 0 40px;
+  background: var(--glass-inner);
+  backdrop-filter: blur(var(--blur-sm));
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+  border: 0.5px solid var(--glass-border);
+  border-radius: var(--r-pill);
+  color: var(--label);
+  width: 100%;
+  transition:
+    border-color var(--motion) var(--ease-io),
+    box-shadow var(--motion) var(--ease-io),
+    background var(--motion) var(--ease-io);
+}
+
+.glass-search__input:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(0,122,255,0.15);
+  background: var(--glass-inner-hover);
+}
+
+.glass-search__input::placeholder { color: var(--label-tertiary); }
+
+
+/* ================================================================
+   Glass Alert — Entrance animation
+   ================================================================ */
+
+.glass-alert {
+  background: var(--glass-bg-thick);
+  backdrop-filter: blur(var(--blur-xl)) saturate(200%);
+  -webkit-backdrop-filter: blur(var(--blur-xl)) saturate(200%);
+  border: 0.5px solid var(--glass-border);
+  border-radius: var(--r-xl);
+  max-width: 280px;
+  text-align: center;
+  overflow: hidden;
+  box-shadow: var(--glass-shadow-lg), var(--glass-specular);
+  animation: alert-in var(--motion) var(--spring) both;
+}
+
+@keyframes alert-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.glass-alert__body { padding: var(--sp-6) var(--sp-5) var(--sp-4); }
+.glass-alert__title { font: var(--text-headline); margin-bottom: var(--sp-1); }
+.glass-alert__msg { font: var(--text-footnote); color: var(--label-secondary); margin: 0; }
+
+.glass-alert__actions {
+  display: flex;
+  border-top: 0.5px solid var(--separator);
+}
+
+.glass-alert__btn {
+  flex: 1;
+  font: var(--text-body);
+  padding: 12px;
+  color: var(--blue);
+  transition:
+    background var(--motion-fast) var(--ease-io),
+    transform var(--motion-fast) var(--spring);
+}
+
+.glass-alert__btn:hover { background: var(--fill-tertiary); }
+.glass-alert__btn:active { transform: scale(0.96); }
+.glass-alert__btn + .glass-alert__btn { border-left: 0.5px solid var(--separator); }
+.glass-alert__btn--primary { font-weight: 600; }
+.glass-alert__btn--destructive { color: var(--red); }
+
+
+/* ================================================================
+   Glass Progress
+   ================================================================ */
+
+.glass-progress {
+  width: 100%;
+  height: 4px;
+  background: var(--fill-secondary);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.glass-progress__fill {
+  height: 100%;
+  background: var(--blue);
+  border-radius: 2px;
+  transition: width 500ms var(--ease-io);
+}
+
+
+/* ================================================================
+   Glass List — Grouped
+   ================================================================ */
+
+.glass-list {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--blur-lg)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--blur-lg)) saturate(180%);
+  border: 0.5px solid var(--glass-border);
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  box-shadow: var(--glass-shadow), var(--glass-specular);
+}
+
+.glass-list__header {
+  font: var(--text-footnote);
+  font-weight: 500;
+  color: var(--label-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: var(--sp-4) var(--sp-5) var(--sp-2);
+}
+
+.glass-list__item {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: var(--sp-3) var(--sp-5);
+  border-bottom: 0.5px solid var(--separator);
+  gap: var(--sp-3);
+  transition: background var(--motion-fast) var(--ease-io);
+}
+
+.glass-list__item:last-child { border-bottom: none; }
+.glass-list__item--interactive:hover { background: var(--fill-tertiary); cursor: pointer; }
+.glass-list__item--interactive:active { background: var(--fill-secondary); }
+.glass-list__item-content { flex: 1; }
+.glass-list__item-accessory { color: var(--label-tertiary); font: var(--text-subhead); }
+
+
+/* ================================================================
+   Dropdown / Menu Animation (for inline use on pages)
+   ================================================================ */
+
+.glass-dropdown-enter {
+  animation: dropdown-in var(--motion) var(--spring) both;
+}
+
+@keyframes dropdown-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.glass-dropdown-up {
+  animation: dropdown-up var(--motion) var(--spring) both;
+}
+
+@keyframes dropdown-up {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Sheet / modal slide-up */
+.glass-sheet-enter {
+  animation: sheet-in var(--motion-slow) var(--spring-soft) both;
+}
+
+@keyframes sheet-in {
+  0% {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
